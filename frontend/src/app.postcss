@@ -1,0 +1,38 @@
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+@layer components {
+  * {
+    @apply overscroll-none;
+  }
+
+  .aside::-webkit-scrollbar,
+  .sidebar-items::-webkit-scrollbar,
+  .mini-sidebar::-webkit-scrollbar,
+  .max-sidebar::-webkit-scrollbar {
+    @apply hidden w-0;
+  }
+
+  ::-moz-selection {
+    @apply bg-primary;
+  }
+
+  ::selection {
+    @apply bg-primary;
+  }
+
+  .xterm .xterm-viewport {
+    @apply h-full w-full rounded-md;
+  }
+
+  .xterm {
+    @apply h-full w-full p-4;
+  }
+
+  .cm-editor .cm-gutters {
+    @apply justify-end border-none bg-base-200;
+  }
+}
