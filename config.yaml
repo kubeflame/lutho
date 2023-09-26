@@ -1,0 +1,9 @@
+auth:
+  # string: kubeconfig | inCluster | accessToken
+  type: kubeconfig
+  # kubeconfig -> file path, inCluster -> boolean (true), accessToken -> access token value
+  value: $HOME/.kube/config
+  masterURL: ""
+
+tls: false
+

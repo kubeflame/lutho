@@ -14,7 +14,7 @@
   </div>
 
   <div
-    class="flex place-content-center items-center space-x-2 bg-gradient-to-b from-transparent to-primary bg-clip-text pt-10 font-mono text-3xl text-primary text-transparent drop-shadow-md"
+    class="to-primary text-primary flex place-content-center items-center space-x-2 bg-gradient-to-b from-transparent bg-clip-text pt-10 font-mono text-3xl text-transparent drop-shadow-md"
   >
     <span>L</span>
     <span>O</span>
@@ -29,7 +29,7 @@
   </div>
 </div>
 
-<style lang="scss">
+<style>
   @-webkit-keyframes newtonBallFirst {
     0% {
       -webkit-transform: rotate(70deg);
@@ -137,8 +137,8 @@
             rgb(79, 77, 77) 39%,
             rgb(55, 55, 55) 42%
         ); */
-    /* background: linear-gradient(hsl(var(--p)), transparent); */
-    background: radial-gradient(transparent, hsl(var(--p)));
+    /* background: linear-gradient(oklch(var(--p)), transparent); */
+    background: radial-gradient(transparent, oklch(var(--p)));
   }
 
   .spinner.newton .ball::before {
@@ -149,7 +149,7 @@
     top: 0;
     left: 50%;
     bottom: 1em;
-    background: linear-gradient(transparent, hsl(var(--p)));
+    background: linear-gradient(transparent, oklch(var(--p)));
   }
 
   .spinner.newton .ball {

@@ -1,77 +1,80 @@
 <script lang="ts">
-  import { link } from "svelte-spa-router";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
   import { namespace } from "../lib/stores";
-  import { onMount } from "svelte";
   import { routeString, DeploymentV1GVRK } from "../lib/util";
   import type { V1DeploymentList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
-  import NamespaceSelect from "../lib/NamespaceSelect.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
-  import { KubeDataOpType } from "../lib/types";
   import socketStore from "../lib/socketStore";
   import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import ListTable from "../lib/tables/ListTable.svelte";
+  import EmbeddedOptions from "../lib/tables/EmbeddedOptions.svelte";
 
   const { sockError, isLoading, dataSend, dataList, dataDelete } =
     socketStore();
 
   let deployListData: V1DeploymentList;
 
-  onMount(async () => {
-    $isLoading = true;
-  });
-
   $: toolbarContent = [{ index: 0, name: "Deployment List" }];
 
   $: $dataSend = [
     {
-      type: KubeDataOpType.list,
+      type: "list",
       request: {
         namespace: $namespace,
-        ...DeploymentV1GVRK,
+        kubeGVRK: DeploymentV1GVRK,
       },
     },
   ];
 
   $: deployListData = $dataList;
+
+  function onDelete(item: any) {
+    $dataSend = [
+      {
+        type: "delete",
+        request: {
+          name: item.metadata?.name,
+          namespace: item.metadata?.namespace,
+          kubeGVRK: DeploymentV1GVRK,
+        },
+      },
+    ];
+  }
 </script>
 
-<HeaderElement>
-  <NamespaceSelect slot="namespace" />
-</HeaderElement>
+<HeaderElement showNamespaceSelect />
 
-<RouterPage>
-  <ResourceToolbar slot="resource-toolbar" bind:toolbarContent />
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if deployListData}
-    <table class="table table-pin-rows">
-      <thead>
-        <tr class="bg-base-200 shadow-sm">
-          <th>Name</th>
-          <th>Namespace</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each deployListData.items as deploy}
-          <tr>
-            <td>
-              <a
-                class="hover:text-primary"
-                href="{routeString.deployList}/{deploy.metadata
-                  ?.namespace}/{deploy.metadata?.name}"
-                use:link
-              >
-                {deploy.metadata?.name}
-              </a>
-            </td>
-            <td>{deploy.metadata?.namespace}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar slot="resource-toolbar">
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  <ListTable
+    hrefRoot={routeString.deployList}
+    isNamespaced={true}
+    tableHead={["Name", "Namespace", "Created At", ""]}
+    items={deployListData?.items}
+  >
+    <td
+      class="flex place-items-center items-center justify-end"
+      slot="embeddedOptions"
+      let:item
+    >
+      <EmbeddedOptions
+        embeddedOptionsData={[
+          {
+            fn: () => {},
+            dialog: {
+              action: () => onDelete(item),
+              type: "Delete",
+              resourceName: item.metadata?.name,
+            },
+            classes: "hover:btn-error",
+            icon: "trash",
+          },
+        ]}
+      />
+    </td>
+  </ListTable>
 </RouterPage>

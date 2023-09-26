@@ -1,5 +1,4 @@
 import HomePage from "./routes/HomePage.svelte";
-import About from "./routes/About.svelte";
 import KubeNode from "./routes/KubeNode.svelte";
 import KubeNodeList from "./routes/KubeNodeList.svelte";
 import PodList from "./routes/PodList.svelte";
@@ -16,8 +15,6 @@ import JobList from "./routes/JobList.svelte";
 import Job from "./routes/Job.svelte";
 import IngressList from "./routes/IngressList.svelte";
 import Ingress from "./routes/Ingress.svelte";
-import HelmList from "./routes/HelmList.svelte";
-import HelmRelease from "./routes/HelmRelease.svelte";
 import NotFound from "./lib/NotFound.svelte";
 import ServiceList from "./routes/ServiceList.svelte";
 import Service from "./routes/Service.svelte";
@@ -51,87 +48,100 @@ import ServiceAccountList from "./routes/ServiceAccountList.svelte";
 import StorageClass from "./routes/StorageClass.svelte";
 import StorageClassList from "./routes/StorageClassList.svelte";
 import Event from "./routes/Event.svelte";
+import ReplicaSetList from "./routes/ReplicaSetList.svelte";
+import ReplicaSet from "./routes/ReplicaSet.svelte";
+import HelmHome from "./routes/helm/HelmHome.svelte";
+import ListReleases from "./routes/helm/ListReleases.svelte";
+import ViewRelease from "./routes/helm/ViewRelease.svelte";
+import ListRepos from "./routes/helm/ListRepos.svelte";
+import ViewRepo from "./routes/helm/ViewRepo.svelte";
+import AuthPage from "./lib/AuthPage.svelte";
 
 export default {
   "/": HomePage,
 
-  "/about": About,
-  "/about/*": About,
+  "/auth": AuthPage,
 
-  "/node": KubeNodeList,
-  "/node/:name": KubeNode,
+  "/nodes": KubeNodeList,
+  "/nodes/:name": KubeNode,
 
-  "/pod": PodList,
-  "/pod/:namespace/:name": Pod,
+  "/pods": PodList,
+  "/pods/:namespace/:name": Pod,
 
-  "/deployment": DeploymentList,
-  "/deployment/:namespace/:name": Deployment,
+  "/deployments": DeploymentList,
+  "/deployments/:namespace/:name": Deployment,
 
-  "/service": ServiceList,
-  "/service/:namespace/:name": Service,
+  "/services": ServiceList,
+  "/services/:namespace/:name": Service,
 
-  "/secret": SecretList,
-  "/secret/:namespace/:name": Secret,
+  "/secrets": SecretList,
+  "/secrets/:namespace/:name": Secret,
 
-  "/configmap": ConfigMapList,
-  "/configmap/:namespace/:name": ConfigMap,
+  "/configmaps": ConfigMapList,
+  "/configmaps/:namespace/:name": ConfigMap,
 
-  "/statefulset": StatefulSetList,
-  "/statefulset/:namespace/:name": StatefulSet,
+  "/statefulsets": StatefulSetList,
+  "/statefulsets/:namespace/:name": StatefulSet,
 
-  "/job": JobList,
-  "/job/:namespace/:name": Job,
+  "/jobs": JobList,
+  "/jobs/:namespace/:name": Job,
 
-  "/ingress": IngressList,
-  "/ingress/:namespace/:name": Ingress,
+  "/ingresses": IngressList,
+  "/ingresses/:namespace/:name": Ingress,
 
-  "/clusterrole": ClusterRoleList,
-  "/clusterrole/:name": ClusterRole,
+  "/clusterroles": ClusterRoleList,
+  "/clusterroles/:name": ClusterRole,
 
-  "/clusterrolebinding": ClusterRoleBindingList,
-  "/clusterrolebinding/:name": ClusterRoleBinding,
+  "/clusterrolebindings": ClusterRoleBindingList,
+  "/clusterrolebindings/:name": ClusterRoleBinding,
 
-  "/role": RoleList,
-  "/role/:namespace/:name": Role,
+  "/roles": RoleList,
+  "/roles/:namespace/:name": Role,
 
-  "/rolebinding": RoleBindingList,
-  "/rolebinding/:namespace/:name": RoleBinding,
+  "/rolebindings": RoleBindingList,
+  "/rolebindings/:namespace/:name": RoleBinding,
 
-  "/cronjob": CronJobList,
-  "/cronjob/:namespace/:name": CronJob,
+  "/cronjobs": CronJobList,
+  "/cronjobs/:namespace/:name": CronJob,
 
-  "/daemonset": DaemonSetList,
-  "/daemonset/:namespace/:name": DaemonSet,
+  "/daemonsets": DaemonSetList,
+  "/daemonsets/:namespace/:name": DaemonSet,
 
-  "/event": EventList,
-  "/event/:namespace/:name": Event,
+  "/replicasets": ReplicaSetList,
+  "/replicasets/:namespace/:name": ReplicaSet,
 
-  "/ingressclass": IngressClassList,
-  "/ingressclass/:name": IngressClass,
+  "/events": EventList,
+  "/events/:namespace/:name": Event,
 
-  "/namespace": NamespaceList,
-  "/namespace/:name": Namespace,
+  "/ingressclasses": IngressClassList,
+  "/ingressclasses/:name": IngressClass,
 
-  "/networkpolicy": NetworkPolicyList,
-  "/networkpolicy/:namespace/:name": NetworkPolicy,
+  "/namespaces": NamespaceList,
+  "/namespaces/:name": Namespace,
 
-  "/persistentvolume": PersistentVolumeList,
-  "/persistentvolume/:name": PersistentVolume,
+  "/networkpolicies": NetworkPolicyList,
+  "/networkpolicies/:namespace/:name": NetworkPolicy,
 
-  "/persistentvolumeclaim": PersistentVolumeClaimList,
-  "/persistentvolumeclaim/:namespace/:name": PersistentVolumeClaim,
+  "/persistentvolumes": PersistentVolumeList,
+  "/persistentvolumes/:name": PersistentVolume,
 
-  "/replicationcontroller": ReplicationControllerList,
-  "/replicationcontroller/:namespace/:name": ReplicationController,
+  "/persistentvolumeclaims": PersistentVolumeClaimList,
+  "/persistentvolumeclaims/:namespace/:name": PersistentVolumeClaim,
 
-  "/serviceaccount": ServiceAccountList,
-  "/serviceaccount/:namespace/:name": ServiceAccount,
+  "/replicationcontrollers": ReplicationControllerList,
+  "/replicationcontrollesr/:namespace/:name": ReplicationController,
 
-  "/storageclass": StorageClassList,
-  "/storageclass/:name": StorageClass,
+  "/serviceaccounts": ServiceAccountList,
+  "/serviceaccounts/:namespace/:name": ServiceAccount,
 
-  "/release": HelmList,
-  "/release/:namespace/:name": HelmRelease,
+  "/storageclasses": StorageClassList,
+  "/storageclasses/:name": StorageClass,
+
+  "/helm": HelmHome,
+  "/helm/list": ListReleases,
+  "/helm/releases/:namespace/:name": ViewRelease,
+  "/helm/repository": ListRepos,
+  "/helm/repository/:name": ViewRepo,
 
   "*": NotFound,
 };

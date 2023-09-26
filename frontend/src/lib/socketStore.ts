@@ -1,114 +1,188 @@
-import { writable } from "svelte/store";
+import { get, writable, type Writable } from "svelte/store";
 import {
-  KubeDataOpType,
-  WSCloseCode,
   type KubeDataStreamMessage,
   type KubeOp,
   type ServerResponse,
+  type SockState,
 } from "./types";
-import { apiURL } from "./util";
+import { apiURL, httpStatus, WSCloseCode } from "./util";
 import SockJS from "sockjs-client/dist/sockjs";
 import { onDestroy, onMount } from "svelte";
 import { statusCode } from "./stores";
 
-export default function createSocketStore() {
-  const isLoading = writable<boolean>(false);
-  const dataSend = writable<KubeOp[]>();
-  const dataList = writable<any>();
-  const dataGet = writable<any>();
-  const dataUpdate = writable<any>();
-  const dataDelete = writable<any>();
-  const sockError = writable<string>();
-  const sockState = writable<{
-    state: number;
-    bound: boolean;
-  }>({
-    state: 0,
-    bound: false,
-  });
+async function getSessionID(
+  isLoading: Writable<boolean>,
+  sockError: Writable<string>,
+  sessionId: Writable<string>,
+) {
+  isLoading.set(true);
 
-  const sessionId = writable<string>("");
+  await fetch(apiURL.dataWS)
+    .then((resp) => {
+      return resp.json();
+    })
+    .then((result: ServerResponse) => {
+      statusCode.set(result.statusCode);
+      sockError.set(result.error);
+      sessionId.set(result.sessionId);
+      isLoading.set(false);
+    })
+    .catch((error) => {
+      sockError.set(`Cannot get sessionId: ${error}`);
+      isLoading.set(false);
+    });
+}
 
+function sockConnection(
+  isLoading: Writable<boolean>,
+  sockState: Writable<SockState>,
+  sockError: Writable<string>,
+  sessionId: Writable<string>,
+  dataList: Writable<any>,
+  dataGet: Writable<any>,
+  dataUpdate: Writable<any>,
+  dataDelete: Writable<any>,
+): WebSocket {
   const sock: WebSocket = new SockJS(`http://${location.host}${apiURL.data}`);
 
-  onMount(async () => {
-    isLoading.update((load) => (load = true));
-
-    await fetch(apiURL.dataWS)
-      .then((resp) => {
-        return resp.json();
-      })
-      .then((result: ServerResponse) => {
-        statusCode.update((sc) => (sc = result.statusCode));
-        sockError.update((err) => (err = result.error));
-        sessionId.update((id) => (id = result.sessionId));
-        isLoading.update((load) => (load = false));
-      })
-      .catch((error) => {
-        sockError.update((err) => (err = `Cannot get sessionId: ${error}`));
-        isLoading.update((load) => (load = false));
-      });
-  });
+  getSessionID(isLoading, sockError, sessionId);
 
   sock.onopen = function () {
-    sockState.update((s) => (s = { state: sock.readyState, bound: false }));
-    sessionId.subscribe(
-      (id) =>
-        id &&
+    sockState.set({ state: sock.readyState, bound: false });
+    sessionId.subscribe((id) => {
+      if (id) {
         sock.send(
           JSON.stringify({
-            op: { type: KubeDataOpType.bind },
+            op: { type: "bind" },
             sessionId: id,
           }),
-        ),
-    );
+        );
+      }
+    });
   };
 
   sock.onmessage = function (me: MessageEvent) {
     const resp: KubeDataStreamMessage = JSON.parse(me.data);
     if (resp.error) {
-      sockError.update((err) => (err = resp.error as string));
-    } else if (resp.op.type === KubeDataOpType.bind) {
-      sockState.update((s) => (s = { state: this.readyState, bound: true }));
-    } else if (resp.op.type === KubeDataOpType.list) {
-      dataList.update((val) => (val = JSON.parse(resp.data)));
-    } else if (resp.op.type === KubeDataOpType.get) {
-      dataGet.update((val) => (val = JSON.parse(resp.data)));
-    } else if (resp.op.type === KubeDataOpType.update) {
-      dataUpdate.update((val) => (val = JSON.parse(resp.data)));
-    } else if (resp.op.type === KubeDataOpType.delete) {
-      dataDelete.update((val) => (val = resp.error));
+      statusCode.set(resp.error === httpStatus[401] ? 401 : 502);
+      sockError.set(resp.error as string);
+      isLoading.set(false);
+    } else if (resp.op.type === "bind") {
+      sockState.set({ state: sock.readyState, bound: true });
+    } else if (resp.op.type === "list") {
+      dataList.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "listAll") {
+      dataList.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmShowValues") {
+      dataGet.set(resp.data);
+      isLoading.set(false);
+    } else if (resp.op.type === "helmList") {
+      dataList.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "get") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmGet") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmInstall") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmUpgrade") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmPull") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "helmGetTags") {
+      dataGet.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "update") {
+      dataUpdate.set(JSON.parse(resp.data));
+      isLoading.set(false);
+    } else if (resp.op.type === "delete") {
+      dataDelete.set(resp.error);
+      isLoading.set(false);
+    } else if (resp.op.type === "helmUninstall") {
+      dataDelete.set(resp.error);
+      isLoading.set(false);
     }
-    isLoading.update((load) => (load = false));
   };
 
   sock.onerror = function (e: Event) {
-    sockError.update((err) => (err = e.toString()));
+    sockError.set(e.toString());
     sock.close(WSCloseCode.error);
+    isLoading.set(false);
   };
 
   sock.onclose = (ce: CloseEvent) => {
     if (!ce.wasClean) {
-      sockError.update((err) => (err = ce.reason));
+      sockError.set(ce.reason);
     }
     sockState.subscribe((s) => {
       s.state === WebSocket.OPEN &&
         sock.send(
           JSON.stringify({
-            op: { type: KubeDataOpType.close },
+            op: { type: "close" },
           }),
         );
     });
+    sockState.set({ state: WebSocket.CLOSED, bound: false });
+    isLoading.set(false);
   };
 
-  dataSend.subscribe((data) => {
-    sockState.subscribe((s) => {
-      if (s.state === WebSocket.OPEN && s.bound && data) {
-        isLoading.update((load) => (load = true));
+  return sock;
+}
+
+export default function createSocketStore() {
+  const isLoading = writable<boolean>(false);
+  const sockState = writable<SockState>({ state: 0, bound: false });
+  const sockError = writable<string>();
+  const sessionId = writable<string>("");
+  const dataSend = writable<KubeOp[]>();
+  const dataList = writable<any>();
+  const dataGet = writable<any>();
+  const dataUpdate = writable<any>();
+  const dataDelete = writable<any>();
+
+  let sock: WebSocket;
+
+  onMount(() => {
+    sock = sockConnection(
+      isLoading,
+      sockState,
+      sockError,
+      sessionId,
+      dataList,
+      dataGet,
+      dataUpdate,
+      dataDelete,
+    );
+  });
+
+  sockState.subscribe((s) => {
+    dataSend.subscribe((data) => {
+      if (s.state === WebSocket.CLOSED && data && s.refresh && !s.bound) {
+        sock = sockConnection(
+          isLoading,
+          sockState,
+          sockError,
+          sessionId,
+          dataList,
+          dataGet,
+          dataUpdate,
+          dataDelete,
+        );
+        s.refresh = false;
+      } else if (s.state === WebSocket.OPEN && s.bound && data) {
+        isLoading.set(true);
         data.forEach((item) =>
           sock.send(
             JSON.stringify({
               op: item,
+              sessionId: get(sessionId),
             }),
           ),
         );
@@ -117,9 +191,9 @@ export default function createSocketStore() {
   });
 
   onDestroy(() => {
-    sockState.subscribe((s) => {
-      s.state === WebSocket.OPEN && sock.close(WSCloseCode.info);
-    });
+    isLoading.set(false);
+
+    get(sockState).state === WebSocket.OPEN && sock.close(WSCloseCode.info);
   });
 
   return {
@@ -130,5 +204,6 @@ export default function createSocketStore() {
     dataUpdate,
     dataDelete,
     sockError,
+    sockState,
   };
 }

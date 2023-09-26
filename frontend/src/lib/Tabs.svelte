@@ -1,88 +1,79 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { expoIn } from "svelte/easing";
-  import { availableContainers, showUtils } from "./stores";
-  import { TabIndex, type TabItem } from "./types";
+  import { type TabItem, type TabQueryParam } from "./types";
+  import { location, querystring } from "svelte-spa-router";
+  import { onMount } from "svelte";
+  import SvgIcon from "./SvgIcon.svelte";
+  import { writable } from "svelte/store";
 
-  export let tabItems: Array<TabItem>;
-  export let activeTab: number;
-  export let refreshLogsComponent: boolean = false;
-  export let refreshShellComponent: boolean = false;
-  export let activeContainer: string = "";
+  export let tabItems: TabItem[];
+  export let activeContainer = writable<string>();
+  export let tabQueryParamDefault: TabQueryParam;
+  export let tabQueryParam: TabQueryParam;
+  export let containers: string[];
+
+  onMount(() => {
+    if (!tabQueryParam && !window.location.pathname.startsWith("/srv")) {
+      window.location.hash = `${$location}?tab=${tabQueryParamDefault}`;
+    }
+  });
+
+  $: tabQueryParam = new URLSearchParams($querystring)
+    .get("tab")
+    ?.toLowerCase() as TabQueryParam;
 </script>
 
-<div class="tabs mt-2" in:fly={{ y: 10, duration: 250, easing: expoIn }}>
+<div
+  role="tablist"
+  class="tabs tabs-lifted mt-3"
+  in:fly={{ y: 10, duration: 250, easing: expoIn }}
+>
   {#each tabItems as tab}
     <button
       on:click={() => {
-        activeTab = tab.index;
+        window.location.hash = `${$location}?tab=${tab.name}`;
       }}
-      class="tab tab-lifted space-x-1 {activeTab === tab.index
+      role="tab"
+      class="tab space-x-1 {tabQueryParam === tab.name.toLowerCase()
         ? 'tab-active'
         : ''}"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={tab.strokeWidth}
-        stroke="currentColor"
-        class="h-4 w-4"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d={tab.icon} />
-      </svg>
+      <SvgIcon strokeWidth={tab.strokeWidth} type={tab.icon} />
       <div>{tab.name}</div>
     </button>
   {/each}
 </div>
-{#if activeTab === TabIndex.SHELL && $availableContainers.length >= 1}
+{#if tabQueryParam === "shell" && containers.length >= 1}
   <div
-    class="tooltip-primary tooltip tooltip-right ml-2 mt-1"
+    class="tooltip tooltip-right tooltip-primary ml-2 mt-1"
     data-tip="available containers"
     in:fly={{ y: 10, duration: 250, easing: expoIn }}
   >
     <select
-      bind:value={activeContainer}
-      class="select select-primary select-xs rounded-full bg-base-100 pl-4 text-center text-sm font-normal drop-shadow-sm focus:outline-1"
-      on:change={() => {
-        refreshShellComponent = true;
-      }}
+      bind:value={$activeContainer}
+      class="select select-primary select-xs bg-base-100 rounded-full pl-4
+        text-center text-sm font-normal drop-shadow-sm focus:outline-1"
     >
-      {#each $availableContainers as container}
+      {#each containers as container}
         <option value={container}>{container}</option>
       {/each}
     </select>
   </div>
-{:else if activeTab === TabIndex.LOGS && $availableContainers.length >= 1}
+{:else if tabQueryParam === "logs" && containers.length >= 1}
   <div
-    class="tooltip-primary tooltip tooltip-right ml-2 mt-1"
+    class="tooltip tooltip-right tooltip-primary ml-2 mt-1"
     data-tip="available containers"
     in:fly={{ y: 10, duration: 250, easing: expoIn }}
   >
     <select
-      bind:value={activeContainer}
-      class="select select-primary select-xs rounded-full bg-base-100 pl-4 text-center text-sm font-normal drop-shadow-sm focus:outline-1"
-      on:change={() => {
-        refreshLogsComponent = true;
-      }}
+      bind:value={$activeContainer}
+      class="select select-primary select-xs bg-base-100 rounded-full pl-4
+        text-center text-sm font-normal drop-shadow-sm focus:outline-1"
     >
-      {#each $availableContainers as container}
+      {#each containers as container}
         <option value={container}>{container}</option>
       {/each}
     </select>
-  </div>
-{:else if activeTab === TabIndex.YAML}
-  <div
-    class="tooltip-primary tooltip tooltip-right ml-2 mt-1"
-    in:fly={{ y: 10, duration: 250, easing: expoIn }}
-  >
-    <button
-      class="btn btn-xs rounded-full font-normal outline outline-1 outline-base-100 drop-shadow-sm hover:bg-primary hover:shadow-sm"
-      on:click={() => {
-        $showUtils = true;
-      }}
-    >
-      Utilities
-    </button>
   </div>
 {/if}

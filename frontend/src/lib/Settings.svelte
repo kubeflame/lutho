@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { icons } from "./util";
+  import SvgIcon from "./SvgIcon.svelte";
   import { showSettings, settingsData } from "./stores";
+
+  const svgIconClassNames: string = "h-6 w-6";
+  const svgIconStrokeWidth: number = 1.5;
 
   let codemirrorYamlHighlight: boolean =
     $settingsData.codemirrorExtraExtensions?.yamlHighlight ?? true;
@@ -18,32 +21,24 @@
   $: if (settingsDialog && $showSettings) settingsDialog.showModal();
 </script>
 
-<dialog bind:this={settingsDialog} class="modal modal-middle">
+<dialog
+  bind:this={settingsDialog}
+  class="modal modal-middle"
+  on:close={() => ($showSettings = false)}
+>
   <div
     class="h-full w-full rounded-2xl border-4 border-base-100 bg-base-200 drop-shadow-xl"
   >
     <div class="m-2">
       <button
         class="bg-none hover:bg-none hover:text-error"
-        on:click={() => {
-          $showSettings = false;
-          settingsDialog.close();
-        }}
+        on:click={() => settingsDialog.close()}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="1.5"
-            d={icons.close}
-          />
-        </svg>
+        <SvgIcon
+          classNames={svgIconClassNames}
+          strokeWidth={svgIconStrokeWidth}
+          type={"close"}
+        />
       </button>
     </div>
 

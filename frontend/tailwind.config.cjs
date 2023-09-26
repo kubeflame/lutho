@@ -20,6 +20,14 @@ const config = {
     rtl: false,
     prefix: "",
   },
+
+  theme: {
+    extend: {
+      transitionTimingFunction: {
+        "in-out-cubic": "cubic-bezier(0.65, 0, 0.35, 1)",
+      },
+    },
+  },
 };
 
 module.exports = config;

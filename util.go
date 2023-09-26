@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 )
 
 const END_OF_TRANSMISSION = "\u0004"
@@ -17,32 +18,60 @@ var WSCloseCode = struct {
 
 var WSOpType = struct {
 	bind,
+	selfSubjectAccessReview,
 	list,
+	listAll,
 	helmList,
 	get,
+	helmShowValues,
 	helmGet,
+	helmInstall,
+	helmUpgrade,
+	helmPull,
+	helmGetTags,
 	update,
 	check,
 	delete,
+	helmUninstall,
 	close,
 	stdin,
 	stdout,
 	resize,
 	toast string
 }{
-	bind:     "bind",
-	list:     "list",
-	helmList: "helmList",
-	get:      "get",
-	helmGet:  "helmGet",
-	check:    "check",
-	update:   "update",
-	delete:   "delete",
-	close:    "close",
-	stdin:    "stdin",
-	stdout:   "stdout",
-	resize:   "resize",
-	toast:    "toast",
+	bind:                    "bind",
+	selfSubjectAccessReview: "selfSubjectAccessReview",
+	list:                    "list",
+	listAll:                 "listAll",
+	helmList:                "helmList",
+	get:                     "get",
+	helmShowValues:          "helmShowValues",
+	helmGet:                 "helmGet",
+	helmInstall:             "helmInstall",
+	helmUpgrade:             "helmUpgrade",
+	helmPull:                "helmPull",
+	helmGetTags:             "helmGetTags",
+	check:                   "check",
+	update:                  "update",
+	delete:                  "delete",
+	helmUninstall:           "helmUninstall",
+	close:                   "close",
+	stdin:                   "stdin",
+	stdout:                  "stdout",
+	resize:                  "resize",
+	toast:                   "toast",
+}
+
+var KubernetesConfigType = struct {
+	inClusterConfig,
+	kubeconfigPath,
+	kubeconfigRaw,
+	accessToken string
+}{
+	inClusterConfig: "inClusterConfig",
+	kubeconfigPath:  "kubeconfigPath",
+	kubeconfigRaw:   "kubeconfigRaw",
+	accessToken:     "accessToken",
 }
 
 func genSessionId() (string, error) {
@@ -63,3 +92,11 @@ func isValidShell(validShells []string, shell string) bool {
 	}
 	return false
 }
+
+func reverseStringSlice(input []string) {
+	for i, j := 0, len(input)-1; i < j; i, j = i+1, j-1 {
+		input[i], input[j] = input[j], input[i]
+	}
+}
+
+var errCouldNotFindResource = errors.New("the server could not find the requested resource")

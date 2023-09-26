@@ -1,32 +1,26 @@
 <script lang="ts">
-  import { link } from "svelte-spa-router";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
-  import { fade } from "svelte/transition";
-  import { onMount } from "svelte";
   import { StorageClassV1GVRK, routeString } from "../lib/util";
   import type { V1StorageClassList } from "@kubernetes/client-node/dist/gen/api";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
-  import { KubeDataOpType } from "../lib/types";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import ListTable from "../lib/tables/ListTable.svelte";
+  import EmbeddedOptions from "../lib/tables/EmbeddedOptions.svelte";
 
   let storageClassListData: V1StorageClassList;
 
   const { sockError, isLoading, dataSend, dataList, dataDelete } =
     socketStore();
 
-  onMount(async () => {
-    $isLoading = true;
-  });
-
   $: toolbarContent = [{ index: 0, name: "StorageClass List" }];
 
   $: $dataSend = [
     {
-      type: KubeDataOpType.list,
+      type: "list",
       request: {
-        ...StorageClassV1GVRK,
+        kubeGVRK: StorageClassV1GVRK,
       },
     },
   ];
@@ -37,47 +31,59 @@
     if (!err)
       $dataSend = [
         {
-          type: KubeDataOpType.list,
+          type: "list",
           request: {
-            ...StorageClassV1GVRK,
+            kubeGVRK: StorageClassV1GVRK,
           },
         },
       ];
   });
+
+  function onDelete(item: any) {
+    $dataSend = [
+      {
+        type: "delete",
+        request: {
+          name: item.metadata?.name,
+          kubeGVRK: StorageClassV1GVRK,
+        },
+      },
+    ];
+  }
 </script>
 
-<HeaderElement>
-  <ResourceToolbar slot="toolbar" bind:toolbarContent />
-</HeaderElement>
+<HeaderElement />
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if storageClassListData}
-    <table class="table table-pin-rows">
-      <thead>
-        <tr class="bg-base-200 shadow-sm">
-          <th>Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each storageClassListData.items as storageClass}
-          <tr>
-            <td>
-              <a
-                class="hover:text-primary"
-                href="{routeString.storageClassList}/{storageClass.metadata
-                  ?.name}"
-                use:link
-              >
-                {storageClass.metadata?.name}
-              </a>
-            </td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
-</div>
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar slot="resource-toolbar">
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  <ListTable
+    hrefRoot={routeString.storageClassList}
+    isNamespaced={false}
+    tableHead={["Name", "Created At", ""]}
+    items={storageClassListData?.items}
+  >
+    <td
+      class="flex place-items-center items-center justify-end"
+      slot="embeddedOptions"
+      let:item
+    >
+      <EmbeddedOptions
+        embeddedOptionsData={[
+          {
+            fn: () => {},
+            dialog: {
+              action: () => onDelete(item),
+              type: "Delete",
+              resourceName: item.metadata?.name,
+            },
+            classes: "hover:btn-error",
+            icon: "trash",
+          },
+        ]}
+      />
+    </td>
+  </ListTable>
+</RouterPage>

@@ -3,18 +3,25 @@ package main
 import (
 	"embed"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/igm/sockjs-go/v3/sockjs"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"github.com/urfave/cli/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
 )
 
@@ -23,15 +30,34 @@ import (
 //go:embed all:frontend/dist
 var files embed.FS
 
+var homeDir = homedir.HomeDir()
+
 type FrontendRequest struct {
 	Namespace       string          `json:"namespace"`
 	Name            string          `json:"name"`
-	Group           string          `json:"group"`
-	Version         string          `json:"version"`
-	Resource        string          `json:"resource"`
-	Kind            string          `json:"kind"`
+	KubeGVRK        KubeGVRK        `json:"kubeGVRK"`
+	KubeGVRKList    []KubeGVRK      `json:"kubeGVRKList"`
 	Data            string          `json:"data"`
-	ResourceOptions ResourceOptions `json:"options"`
+	ResourceOptions ResourceOptions `json:"kubeOptions"`
+	HelmOptions     HelmOptions     `json:"helmOptions"`
+}
+
+type KubeGVRK struct {
+	Group        string `json:"group"`
+	Version      string `json:"version"`
+	Resource     string `json:"resource"`
+	Kind         string `json:"kind"`
+	IsNamespaced bool   `json:"isNamespaced"`
+}
+
+type HelmOptions struct {
+	ChartName    string `json:"chartName"`
+	ChartVersion string `json:"chartVersion"`
+	EnvPath      string `json:"envPath"`
+	RepoURL      string `json:"repoURL"`
+	DryRun       bool   `json:"dryRun"`
+	IsOCI        bool   `json:"isOCI"`
+	ReuseValues  bool   `json:"reuseValues"`
 }
 
 type ResourceOptions struct {
@@ -39,10 +65,12 @@ type ResourceOptions struct {
 	LabelSelector  string `json:"labelSelector"`
 	TimeoutSeconds int64  `json:"timeoutSeconds"`
 	Limit          int64  `json:"limit"`
-	Continue       string `json:"_continue"`
+	Continue       string `json:"continue"`
 }
 
 type APIResource struct {
+	CliContext    *cli.Context
+	AuthRequest   *AuthRequest
 	AuthState     bool
 	Clientset     *kubernetes.Clientset
 	DynamicClient *dynamic.DynamicClient
@@ -60,7 +88,7 @@ type APIResourceMessage struct {
 var apiRes = APIResource{}
 
 func (ar *APIResource) DataStreamWSHandler(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
@@ -71,7 +99,7 @@ func (ar *APIResource) DataStreamWSHandler(c echo.Context) error {
 }
 
 func (ar *APIResource) DataStreamWS(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized,
 			APIResourceMessage{StatusCode: http.StatusUnauthorized, Error: "Not authenticated"})
 	}
@@ -95,7 +123,7 @@ func (ar *APIResource) DataStreamWS(c echo.Context) error {
 }
 
 func (ar *APIResource) ShellWSHandler(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
@@ -106,7 +134,7 @@ func (ar *APIResource) ShellWSHandler(c echo.Context) error {
 }
 
 func (ar *APIResource) ExecShell(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized,
 			APIResourceMessage{StatusCode: http.StatusUnauthorized, Error: "Not authenticated"})
 	}
@@ -152,7 +180,7 @@ func (ar *APIResource) ExecShell(c echo.Context) error {
 }
 
 func (ar *APIResource) LogsWSHandler(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
@@ -163,7 +191,7 @@ func (ar *APIResource) LogsWSHandler(c echo.Context) error {
 }
 
 func (ar *APIResource) StreamLogs(c echo.Context) error {
-	if !ar.AuthState {
+	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
@@ -175,7 +203,6 @@ func (ar *APIResource) StreamLogs(c echo.Context) error {
 	pld.Follow = c.QueryParam("follow")
 	pld.TailLines = c.QueryParam("tailLines")
 	pld.Options = &v1.PodLogOptions{}
-
 	pld.ParameterCodec = scheme.ParameterCodec
 
 	sessionID, err := genSessionId()
@@ -197,91 +224,216 @@ func (ar *APIResource) StreamLogs(c echo.Context) error {
 }
 
 type AuthResponse struct {
-	Error error `json:"error"`
-	State bool  `json:"state"`
+	Error    string `json:"error"`
+	KubeHost string `json:"kubeHost"`
+	State    bool   `json:"state"`
+}
+
+type AuthRequest struct {
+	Type           string `json:"type"`
+	AccessToken    string `json:"token"`
+	KubeconfigPath string `json:"kubeconfigPath"`
+	KubeconfigRaw  string `json:"kubeconfigRaw"`
+	MasterURL      string `json:"masterURL"`
+	TLSInsecure    bool   `json:"tlsInsecure"`
 }
 
 func (ar *APIResource) Auth(c echo.Context) (err error) {
-	cfg, err := initKubeconfig(&KubeconfigInit{
-		TLSInsecure: true,
-		Type:        Config,
-	})
-	if err != nil {
+	if err := c.Bind(ar.AuthRequest); err != nil {
 		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error: fmt.Errorf("could not initialize kubeconfig: %s", err),
+			Error: fmt.Sprintf("Auth error: could not initialize cluster config: %s", err),
+			State: false,
 		})
 	}
-	ar.Config = cfg
 
-	cs, err := initClientset(ar.Config)
-	if err != nil {
+	if err := authInit(ar); err != nil {
 		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error: fmt.Errorf("could not initialize kubernetes clientset: %s", err),
+			Error: fmt.Sprintf("Auth error: %s", err),
+			State: false,
 		})
 	}
-	ar.Clientset = cs
-
-	dc, err := initDynamicClient(ar.Config)
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error: fmt.Errorf("could not initialize kubernetes dynamic client: %s", err),
-		})
-	}
-	ar.DynamicClient = dc
-
-	hac, hes, err := initHelm()
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error: fmt.Errorf("could not initialize helm client: %s", err),
-		})
-	}
-	ar.Helm = &Helm{ActionConfig: hac, EnvSettings: hes}
 
 	ar.AuthState = true
 
-	return c.JSON(http.StatusOK, AuthResponse{State: true})
+	return c.JSON(http.StatusOK, AuthResponse{State: ar.AuthState, KubeHost: ar.Config.Host})
+}
+
+var portFlagValue string
+var portFlag = &cli.StringFlag{
+	Name:        "port",
+	Usage:       "the port where the UI can be accessed at",
+	Value:       "3001",
+	Destination: &portFlagValue,
+}
+
+var kubeconfigFlagValue string
+var kubeconfigFlag = &cli.StringFlag{
+	Name:        "kubeconfig",
+	Usage:       "kubeconfig file path",
+	Value:       filepath.Join(homeDir, ".kube", "config"),
+	Destination: &kubeconfigFlagValue,
+}
+
+var kubeAccessTokenFlagValue string
+var kubeAccessTokenFlag = &cli.StringFlag{
+	Name:        "access-token",
+	Usage:       "kubernetes cluster access token",
+	Destination: &kubeAccessTokenFlagValue,
+}
+
+var kubeMasterURLFlagValue string
+var kubeMasterURLFlag = &cli.StringFlag{
+	Name:        "master-url",
+	Usage:       "kubernetes master URL",
+	Destination: &kubeMasterURLFlagValue,
+}
+
+var kubeInClusterConfigFlagValue bool
+var kubeInClusterConfigFlag = &cli.BoolFlag{
+	Name:        "in-cluster",
+	Usage:       "set this flag if the app is inside the kubernetes cluster",
+	Destination: &kubeInClusterConfigFlagValue,
 }
 
 func main() {
-	e := echo.New()
-	e.HideBanner = true
-
-	config := middleware.RateLimiterConfig{
-		Skipper: middleware.DefaultSkipper,
-		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
-			middleware.RateLimiterMemoryStoreConfig{
-				Rate: 60, Burst: 30, ExpiresIn: time.Minute,
+	app := &cli.App{
+		Name:     "lutho",
+		Version:  "v0.1.0",
+		Compiled: time.Now(),
+		Authors: []*cli.Author{
+			{
+				Name:  "KubeFlame",
+				Email: "https://github.com/kubeflame",
 			},
-		),
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			id := c.RealIP()
-			return id, nil
 		},
-		ErrorHandler: func(c echo.Context, err error) error {
-			return c.JSON(http.StatusForbidden,
-				APIResourceMessage{StatusCode: http.StatusForbidden})
-		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
-			return c.JSON(http.StatusTooManyRequests,
-				APIResourceMessage{StatusCode: http.StatusTooManyRequests})
+		Commands: []*cli.Command{
+			{
+				Name:        "config",
+				Usage:       "manage the configuration",
+				Description: "",
+				Subcommands: []*cli.Command{
+					{
+						Name: "get",
+						Action: func(ctx *cli.Context) error {
+							return nil
+						},
+					},
+					{
+						Name: "set",
+						Action: func(ctx *cli.Context) error {
+							return nil
+						},
+					},
+					{
+						Name: "list",
+						Action: func(ctx *cli.Context) error {
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:        "start",
+				Usage:       "Starts the application",
+				Description: "This command will start the application",
+				Flags: []cli.Flag{
+					portFlag,
+					kubeconfigFlag,
+					kubeAccessTokenFlag,
+					kubeMasterURLFlag,
+					kubeInClusterConfigFlag,
+				},
+				Action: func(ctx *cli.Context) error {
+					apiRes.CliContext = ctx
+					apiRes.AuthRequest = &AuthRequest{}
+
+					switch {
+					case apiRes.CliContext.IsSet(kubeconfigFlag.Name):
+						apiRes.AuthRequest.Type = KubernetesConfigType.kubeconfigPath
+						apiRes.AuthRequest.KubeconfigPath = kubeconfigFlagValue
+						if err := authInit(&apiRes); err != nil {
+							return err
+						}
+						apiRes.AuthState = true
+					case apiRes.CliContext.IsSet(kubeAccessTokenFlag.Name):
+						apiRes.AuthRequest.Type = KubernetesConfigType.accessToken
+						apiRes.AuthRequest.MasterURL = kubeMasterURLFlagValue
+						apiRes.AuthRequest.AccessToken = kubeAccessTokenFlagValue
+						apiRes.AuthRequest.TLSInsecure = true
+						if err := authInit(&apiRes); err != nil {
+							return err
+						}
+						apiRes.AuthState = true
+					case apiRes.CliContext.IsSet(kubeInClusterConfigFlag.Name):
+						apiRes.AuthRequest.Type = KubernetesConfigType.inClusterConfig
+						if err := authInit(&apiRes); err != nil {
+							return err
+						}
+						apiRes.AuthState = true
+					}
+
+					e := echo.New()
+					e.HideBanner = true
+
+					config := middleware.RateLimiterConfig{
+						Skipper: middleware.DefaultSkipper,
+						Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+							middleware.RateLimiterMemoryStoreConfig{
+								Rate: 60, Burst: 30, ExpiresIn: time.Minute,
+							},
+						),
+						IdentifierExtractor: func(c echo.Context) (string, error) {
+							id := c.RealIP()
+							return id, nil
+						},
+						ErrorHandler: func(c echo.Context, err error) error {
+							return c.JSON(http.StatusForbidden,
+								APIResourceMessage{StatusCode: http.StatusForbidden})
+						},
+						DenyHandler: func(c echo.Context, identifier string, err error) error {
+							return c.JSON(http.StatusTooManyRequests,
+								APIResourceMessage{StatusCode: http.StatusTooManyRequests})
+						},
+					}
+
+					e.Use(middleware.RateLimiterWithConfig(config))
+
+					fs := echo.MustSubFS(files, "frontend/dist")
+					e.StaticFS("/", fs)
+
+					e.POST("/srv/auth", apiRes.Auth)
+					e.GET("/srv/auth/state", func(c echo.Context) error {
+						var kubeHost string
+						if apiRes.Config != nil {
+							kubeHost = apiRes.Config.Host
+						}
+						return c.JSON(http.StatusOK, AuthResponse{
+							State: apiRes.AuthState, KubeHost: kubeHost,
+						},
+						)
+					})
+
+					e.GET("/srv/data*", apiRes.DataStreamWSHandler)
+					e.GET("/srv/data/ws", apiRes.DataStreamWS)
+
+					e.GET("/srv/shell*", apiRes.ShellWSHandler)
+					e.GET("/srv/shell/exec", apiRes.ExecShell)
+
+					e.GET("/srv/logs*", apiRes.LogsWSHandler)
+					e.GET("/srv/logs/stream", apiRes.StreamLogs)
+
+					e.Logger.Fatal(e.Start(":" + portFlagValue))
+
+					return nil
+				},
+			},
 		},
 	}
 
-	e.Use(middleware.RateLimiterWithConfig(config))
+	sort.Sort(cli.FlagsByName(app.Flags))
 
-	fs := echo.MustSubFS(files, "frontend/dist")
-	e.StaticFS("/", fs)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 
-	e.GET("/auth", apiRes.Auth)
-
-	e.GET("/srv/data*", apiRes.DataStreamWSHandler)
-	e.GET("/srv/data/ws", apiRes.DataStreamWS)
-
-	e.GET("/srv/shell*", apiRes.ShellWSHandler)
-	e.GET("/srv/shell/exec", apiRes.ExecShell)
-
-	e.GET("/srv/logs*", apiRes.LogsWSHandler)
-	e.GET("/srv/logs/stream", apiRes.StreamLogs)
-
-	e.Logger.Fatal(e.Start(":3001"))
 }

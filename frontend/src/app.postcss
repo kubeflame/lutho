@@ -4,20 +4,22 @@
 
 @tailwind utilities;
 
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 @layer components {
   * {
     @apply overscroll-none;
-  }
-
-  .aside::-webkit-scrollbar,
-  .sidebar-items::-webkit-scrollbar,
-  .mini-sidebar::-webkit-scrollbar,
-  .max-sidebar::-webkit-scrollbar {
-    @apply hidden w-0;
-  }
-
-  ::-moz-selection {
-    @apply bg-primary;
   }
 
   ::selection {
@@ -32,7 +34,9 @@
     @apply h-full w-full p-4;
   }
 
-  .cm-editor .cm-gutters {
-    @apply justify-end border-none bg-base-200;
+  .collapse-title,
+  :where(.collapse > input[type="checkbox"]),
+  :where(.collapse > input[type="radio"]) {
+    @apply flex min-h-min w-full items-center;
   }
 }

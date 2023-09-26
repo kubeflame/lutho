@@ -1,3 +1,18 @@
+import type {
+  V1CronJobList,
+  V1DeploymentList,
+  V1JobList,
+  V1ListMeta,
+  V1NodeList,
+  V1PodList,
+  V1ReplicaSetList,
+  V1ReplicationControllerList,
+  V1ServiceList,
+  V1StatefulSetList,
+} from "@kubernetes/client-node";
+import type { icons } from "./icons";
+import type { KubeAuthType, routeString } from "./util";
+
 export type HTTPStatusCode = {
   [key: number]: string;
 };
@@ -8,19 +23,39 @@ export type ServerResponse = {
   statusCode: number;
 };
 
+export type AuthResponse = {
+  error: string;
+  state: boolean;
+  kubeHost: string;
+};
+
+export type AuthRequest = {
+  type: keyof typeof KubeAuthType;
+  token?: string;
+  kubeconfigPath?: string;
+  kubeconfigRaw?: string;
+  masterURL?: string;
+};
+
 export type ServerRequest = {
   type?: any;
   url?: string;
-  urlPArams?: string;
-  group?: string;
-  version?: string;
-  resource?: string;
-  kind?: string;
+  urlParams?: string;
+  kubeGVRK?: KubeGVRK;
+  kubeGVRKList?: KubeGVRK[];
   signal?: AbortSignal;
   namespace?: string;
   name?: string;
   data?: any;
-  options?: KubeOptions;
+  kubeOptions?: KubeOptions;
+  helmOptions?: HelmOptions;
+};
+
+export type SockState = {
+  state: number;
+  bound: boolean;
+  refresh?: boolean;
+  query?: string;
 };
 
 export type KubeOptions = {
@@ -28,7 +63,17 @@ export type KubeOptions = {
   labelSelector?: string;
   timeoutSeconds?: number;
   limit?: number;
-  _continue?: string;
+  continue?: string;
+};
+
+export type HelmOptions = {
+  chartName?: string;
+  chartVersion?: string;
+  envPath?: string;
+  repoURL?: string;
+  dryRun?: boolean;
+  isOCI?: boolean;
+  reuseValues?: boolean;
 };
 
 export namespace KubeEvent {
@@ -77,20 +122,20 @@ export namespace Helm {
     version?: string;
     repository?: string;
     condition?: string;
-    tags?: Array<string>;
+    tags?: string[];
     enabled?: boolean;
-    "import-values"?: Array<any>;
+    "import-values"?: any[];
     alias?: string;
   };
 
   export type Metadata = {
     name?: string;
     home?: string;
-    sources: Array<string>;
+    sources: string[];
     version?: string;
     description?: string;
-    keywords: Array<string>;
-    maintainers: Array<Maintainer>;
+    keywords: string[];
+    maintainers: Maintainer[];
     icon?: string;
     apiVersion?: string;
     condition?: string;
@@ -101,14 +146,14 @@ export namespace Helm {
       [key: string]: string;
     };
     kubeVersion?: string;
-    dependencies: Array<Dependency>;
+    dependencies: Dependency[];
     type?: string;
   };
 
   export type Lock = {
     generated?: Date;
     digest?: string;
-    dependencies: Array<Dependency>;
+    dependencies: Dependency[];
   };
 
   export type File = {
@@ -127,10 +172,10 @@ export namespace Helm {
     kind?: string;
     path?: string;
     manifest?: string;
-    events?: Array<string>;
+    events?: string[];
     last_run?: HookExecution;
     wieght?: number;
-    delete_policies?: Array<string>;
+    delete_policies?: string[];
   };
 
   export type ReleaseInfo = {
@@ -146,17 +191,17 @@ export namespace Helm {
   };
 
   export type Chart = {
-    "-": Array<File>;
+    "-": File[];
     metadata?: Metadata;
     lock?: Lock;
-    templates: Array<File>;
+    templates: File[];
     values?: {
       [key: string]: any;
     };
     schema?: ArrayBuffer;
-    files: Array<File>;
+    files: File[];
     parent?: Chart;
-    depdendencies: Array<Chart>;
+    depdendencies: Chart[];
   };
 
   export type Release = {
@@ -167,7 +212,7 @@ export namespace Helm {
       [key: string]: any;
     };
     manifest?: string;
-    hooks?: Array<Hook>;
+    hooks?: Hook[];
     version?: number;
     namespace?: string;
     "-"?: {
@@ -184,12 +229,6 @@ export type TerminalMessage = {
   cols: number;
   error?: string;
   statusCode?: number;
-};
-
-export type XtermData = {
-  namespace: string;
-  name: string;
-  containers?: string;
 };
 
 export type LogStreamMessage = {
@@ -209,56 +248,49 @@ export type KubeDataStreamMessage = {
 };
 
 export type KubeOp = {
-  type: string;
+  type:
+    | "bind"
+    | "selfSubjectAccessReview"
+    | "list"
+    | "listAll"
+    | "helmShowValues"
+    | "helmList"
+    | "get"
+    | "helmGet"
+    | "helmInstall"
+    | "helmUpgrade"
+    | "helmPull"
+    | "helmGetTags"
+    | "check"
+    | "update"
+    | "delete"
+    | "helmUninstall"
+    | "close"
+    | "stdin"
+    | "stdout"
+    | "resize"
+    | "toast";
   request?: ServerRequest;
+  opID?: string;
 };
 
-export const KubeDataOpType = {
-  bind: "bind",
-  list: "list",
-  helmList: "helmList",
-  get: "get",
-  helmGet: "helmGet",
-  check: "check",
-  update: "update",
-  delete: "delete",
-  close: "close",
-  stdin: "stdin",
-  stdout: "stdout",
-  resize: "resize",
-  toast: "toast",
-} as const;
+export type KubeGVRK = {
+  group: string;
+  version: string;
+  resource: string;
+  kind: string;
+  isNamespaced?: boolean;
+};
 
 export type Alert = {
   type: "info" | "warning" | "error" | null;
   message: string | null;
+  className?: string;
 };
 
-export const WSCloseCode = {
-  info: 3000,
-  warning: 3001,
-  error: 3002,
-  refresh: 3003,
-} as const;
-
-export const TabIndex = {
-  DETAILS: 0,
-  YAML: 1,
-  LOGS: 2,
-  SHELL: 3,
-  EVENTS: 4,
-  QUEUE: 5,
-  STACK: 6,
-  SHELL_EMBED: 7,
-  LOGS_EMBED: 8,
-  SEARCH: 9,
-  DASHBOARD: 10,
-} as const;
-
 export type TabItem = {
-  index: number;
   name: string;
-  icon: string;
+  icon: keyof typeof icons;
   strokeWidth: number;
   viewBox: string;
 };
@@ -277,16 +309,11 @@ export type SidebarState = "max" | "min";
 
 export type SidebarItem = {
   name: string;
-  icon: string;
-  url: string;
+  icon: keyof typeof icons;
+  url: keyof typeof routeString;
   viewBox: string;
   strokeWidth: number;
 };
-
-export const EventType = {
-  NORMAL: "Normal",
-  WARNING: "Warning",
-} as const;
 
 export type CodeMirrorExtraExtensions = {
   yamlHighlight: boolean;
@@ -296,24 +323,115 @@ export type SettingsData = {
   codemirrorExtraExtensions: CodeMirrorExtraExtensions;
 };
 
+export type HelmRepoData = {
+  name: string;
+  url: string;
+  isOCI: boolean;
+  indexFile?: string;
+  latestVersion?: string;
+  allVersions?: string[];
+};
+
+export type HelmChartTags = {
+  chartName: string;
+  chartTags: string[];
+};
+
+export type HelmChartIndexEntry = {
+  name: string;
+  version: string;
+  created: string;
+  dependencies: HelmChartIndexEntryDependency[];
+  appVersion?: string;
+  description?: string;
+  kubeVersion?: string;
+  maintainers?: any;
+  sources?: any;
+  urls?: any;
+};
+
+export type HelmChartIndexEntryDependency = {
+  alias: string;
+  condition: string;
+  name: string;
+  repository: string;
+  version: string;
+};
+
 export type EmbeddedOptionsData = {
-  icon: string;
+  icon: keyof typeof icons;
   classes: string;
-  fn: Function;
+  fn: (data?: any) => void;
+  dialog?: DialogData;
   url?: string;
   hide?: boolean;
 };
 
-export type EmbeddedTableItem = {
-  name: string;
-  value: string | undefined;
-  hidden?: boolean;
+export type DialogData = {
+  type?: string;
+  action?: any;
+  classNames?: string;
+  resourceName?: string;
+  icon?: keyof typeof icons;
+  message?: string;
 };
 
-export type KubeGVRK = {
-  group: string;
-  version: string;
-  resource: string;
+export type EmbeddedTableItem = {
+  name: string;
+  value: any;
+  hidden?: boolean;
+  className?: string;
+};
+
+export type TableType =
+  | "normal"
+  | "events"
+  | "badges"
+  | "one_row"
+  | "custom-body"
+  | "custom-vertical";
+
+export type TabQueryParam =
+  | "referrer"
+  | "details"
+  | "yaml"
+  | "new"
+  | "logs"
+  | "shell"
+  | "events"
+  | "queue"
+  | "stack"
+  | "search"
+  | "dashboard"
+  | "repository"
+  | "list";
+
+export interface V1KubeListMeta extends V1ListMeta {
+  continue: string;
+}
+
+export type KubeFieldSelector = {
   kind: string;
-  isNamespaced?: boolean;
+  name: string;
+  namespace: string;
+};
+
+export type DashboardList = {
+  [key: string]:
+    | V1NodeList
+    | V1PodList
+    | V1DeploymentList
+    | V1StatefulSetList
+    | V1JobList
+    | V1CronJobList
+    | V1ServiceList
+    | V1ReplicaSetList
+    | V1ReplicationControllerList;
+};
+
+export type DashboardStat = {
+  title: string;
+  iconType: keyof typeof icons;
+  value: number | null;
+  description: string;
 };

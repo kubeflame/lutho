@@ -1,25 +1,31 @@
 <script lang="ts">
-  import CodeMirror from "../lib/CodeMirror.svelte";
+  import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
-  import { fade } from "svelte/transition";
-  import { tabs, routeString, EventV1GVRK } from "../lib/util";
-  import { TabIndex, KubeDataOpType } from "../lib/types";
-  import type { EventsV1Event } from "@kubernetes/client-node";
+  import {
+    tabs,
+    routeString,
+    EventV1GVRK,
+    jsonStringClassName,
+  } from "../lib/util";
+  import type { CoreV1Event } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import type { TabQueryParam } from "../lib/types";
+  import Details from "../lib/Details.svelte";
+  import EmbeddedTable from "../lib/tables/EmbeddedTable.svelte";
 
   export let params: any;
 
   const tabItems = [tabs.details, tabs.yaml];
   const { sockError, isLoading, dataSend, dataGet, dataUpdate } = socketStore();
 
-  let activeTab: number = TabIndex.DETAILS;
+  let tabQueryParam: TabQueryParam;
   let docStore: any;
-  let eventData: EventsV1Event;
+  let eventData: CoreV1Event;
   let codeMirrorChanged: boolean;
 
   $: toolbarContent = [
@@ -31,11 +37,11 @@
 
   $dataSend = [
     {
-      type: KubeDataOpType.get,
+      type: "get",
       request: {
         namespace: params.namespace,
         name: params.name,
-        ...EventV1GVRK,
+        kubeGVRK: EventV1GVRK,
       },
     },
   ];
@@ -47,11 +53,11 @@
   function update() {
     $dataSend = [
       {
-        type: KubeDataOpType.update,
+        type: "update",
         request: {
           namespace: params.namespace,
           name: params.name,
-          ...EventV1GVRK,
+          kubeGVRK: EventV1GVRK,
           data: JSON.stringify(fromYaml($docStore)),
         },
       },
@@ -60,22 +66,122 @@
 </script>
 
 <HeaderElement>
-  <Tabs slot="tabs" bind:activeTab {tabItems} />
-  <ResourceToolbar
-    slot="toolbar"
-    bind:codeMirrorChanged
-    bind:toolbarContent
-    bind:activeTab
-    onClickSubmit={update}
+  <Tabs
+    slot="tabs"
+    bind:tabQueryParam
+    tabQueryParamDefault={"details"}
+    {tabItems}
   />
 </HeaderElement>
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if activeTab === TabIndex.YAML}
-    <CodeMirror doc={toYaml(eventData)} bind:codeMirrorChanged bind:docStore />
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar
+    slot="resource-toolbar"
+    bind:codeMirrorChanged
+    bind:tabQueryParam
+    onClickSubmit={update}
+  >
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  {#if tabQueryParam === "details"}
+    <Details title={"Resource Information"}>
+      <EmbeddedTable
+        tagName={"Summary"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          { name: "Name", value: eventData?.metadata?.name },
+          { name: "Namespace", value: eventData?.metadata?.namespace },
+          {
+            name: "Creation Timestamp",
+            value: eventData?.metadata?.creationTimestamp,
+          },
+          {
+            name: "UID",
+            value: eventData?.metadata?.uid,
+          },
+        ]}
+      />
+    </Details>
+
+    <Details title={"Details"}>
+      <EmbeddedTable
+        tagName={"Involved Object"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          {
+            name: "Kind",
+            value: eventData?.involvedObject.kind,
+          },
+          {
+            name: "Name",
+            value: eventData?.involvedObject.name,
+          },
+          {
+            name: "Namespace",
+            value: eventData?.involvedObject.namespace,
+          },
+        ]}
+      />
+
+      <EmbeddedTable
+        tagName={"Data"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          {
+            name: "Count",
+            value: eventData?.count,
+          },
+          {
+            name: "Kind",
+            value: eventData?.kind,
+          },
+          {
+            name: "Type",
+            value: eventData?.type,
+          },
+          {
+            name: "Reason",
+            value: eventData?.reason,
+          },
+          {
+            name: "Message",
+            value: eventData?.message,
+            className: "whitespace-pre-wrap",
+          },
+          {
+            name: "Reporting Component",
+            value: eventData?.reportingComponent,
+          },
+          {
+            name: "Reporting Instance",
+            value: eventData?.reportingInstance,
+          },
+          {
+            name: "Source",
+            value: JSON.stringify(eventData?.source, null, 2) ?? "{}",
+            className: jsonStringClassName,
+          },
+        ]}
+      />
+
+      <EmbeddedTable
+        tagName={"Message"}
+        tableType={"custom-vertical"}
+        tableItems={[]}
+      >
+        <div
+          class="border-base-300 bg-base-200/10 whitespace-pre rounded-lg border px-1 font-mono text-sm"
+        >
+          {eventData?.message}
+        </div>
+      </EmbeddedTable>
+    </Details>
+  {:else if tabQueryParam === "yaml"}
+    <CodeMirror
+      value={toYaml(eventData)}
+      bind:codeMirrorChanged
+      bind:docStore
+    />
   {/if}
-</div>
+</RouterPage>

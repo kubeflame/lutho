@@ -1,23 +1,29 @@
 <script lang="ts">
-  import CodeMirror from "../lib/CodeMirror.svelte";
+  import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
-  import { fade } from "svelte/transition";
-  import { tabs, routeString, IngressClassV1GVRK } from "../lib/util";
-  import { TabIndex, KubeDataOpType } from "../lib/types";
+  import {
+    tabs,
+    routeString,
+    IngressClassV1GVRK,
+    getLabels,
+  } from "../lib/util";
   import type { V1IngressClass } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import type { TabQueryParam } from "../lib/types";
+  import Details from "../lib/Details.svelte";
+  import EmbeddedTable from "../lib/tables/EmbeddedTable.svelte";
 
   export let params: any;
 
   const tabItems = [tabs.details, tabs.yaml];
   const { sockError, isLoading, dataSend, dataGet, dataUpdate } = socketStore();
 
-  let activeTab: number = TabIndex.DETAILS;
+  let tabQueryParam: TabQueryParam;
   let docStore: any;
   let ingressClassData: V1IngressClass;
   let codeMirrorChanged: boolean;
@@ -31,10 +37,10 @@
 
   $dataSend = [
     {
-      type: KubeDataOpType.get,
+      type: "get",
       request: {
         name: params.name,
-        ...IngressClassV1GVRK,
+        kubeGVRK: IngressClassV1GVRK,
       },
     },
   ];
@@ -46,10 +52,10 @@
   function update() {
     $dataSend = [
       {
-        type: KubeDataOpType.update,
+        type: "update",
         request: {
           name: params.name,
-          ...IngressClassV1GVRK,
+          kubeGVRK: IngressClassV1GVRK,
           data: JSON.stringify(fromYaml($docStore)),
         },
       },
@@ -58,26 +64,71 @@
 </script>
 
 <HeaderElement>
-  <Tabs slot="tabs" bind:activeTab {tabItems} />
-  <ResourceToolbar
-    slot="toolbar"
-    bind:codeMirrorChanged
-    bind:toolbarContent
-    bind:activeTab
-    onClickSubmit={update}
+  <Tabs
+    slot="tabs"
+    bind:tabQueryParam
+    tabQueryParamDefault={"details"}
+    {tabItems}
   />
 </HeaderElement>
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if activeTab === TabIndex.YAML}
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar
+    slot="resource-toolbar"
+    bind:codeMirrorChanged
+    bind:tabQueryParam
+    onClickSubmit={update}
+  >
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  {#if tabQueryParam === "details"}
+    <Details title={"Resource Information"}>
+      <EmbeddedTable
+        tagName={"Summary"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          { name: "Name", value: ingressClassData?.metadata?.name },
+          {
+            name: "Creation Timestamp",
+            value: ingressClassData?.metadata?.creationTimestamp,
+          },
+          {
+            name: "UID",
+            value: ingressClassData?.metadata?.uid,
+          },
+        ]}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Annotations"}
+        tableItems={getLabels(ingressClassData?.metadata?.annotations)}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Labels"}
+        tableItems={getLabels(ingressClassData?.metadata?.labels)}
+      />
+    </Details>
+
+    <Details title={"Spec"}>
+      <EmbeddedTable
+        tableType={"custom-vertical"}
+        tableItems={[
+          {
+            name: "Controller",
+            value: ingressClassData?.spec?.controller,
+          },
+        ]}
+      />
+    </Details>
+  {:else if tabQueryParam === "yaml"}
     <CodeMirror
-      doc={toYaml(ingressClassData)}
+      value={toYaml(ingressClassData)}
       bind:codeMirrorChanged
       bind:docStore
     />
   {/if}
-</div>
+</RouterPage>

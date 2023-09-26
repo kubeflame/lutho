@@ -1,15 +1,19 @@
 <script lang="ts">
-  import { icons } from "./util";
   import { showSettings, sidebarState } from "./stores";
-  import { slide } from "svelte/transition";
-  import { cubicInOut } from "svelte/easing";
   import Settings from "./Settings.svelte";
+  import { onMount } from "svelte";
+  import SvgIcon from "./SvgIcon.svelte";
+  import { transitionEffects } from "./util";
 
   const htmlEl = document.querySelector("html");
   const logoName = "LUTHO";
   const fontLogo = "font-mono font-thin tracking-wider";
+  const svgIconClassNames: string = "size-5";
+  const svgIconStrokeWidth: number = 1.5;
 
   let darkMode: boolean = localStorage.getItem("theme") === "dark";
+
+  onMount(() => setDataTheme());
 
   function setDataTheme() {
     if (darkMode) {
@@ -29,11 +33,11 @@
 
 <Settings />
 
-<div class="nav-button z-10 flex">
+<div class="nav-control no-scrollbar z-10 flex">
   <button
-    class="nav-state-button z-50 flex self-center rounded-full
-      border-2 border-base-100 bg-base-200 p-0.5 duration-300 ease-in-out
-      hover:rotate-90 hover:bg-primary hover:drop-shadow-md"
+    class="nav-state-button border-base-100 bg-base-200 hover:bg-primary z-50
+      flex self-center rounded-full border-2 p-0.5 duration-300 ease-in-out
+      hover:rotate-90 hover:drop-shadow-md"
     on:click={setState}
   >
     <svg
@@ -46,7 +50,7 @@
         fill="#274c77"
         d="M46.2,32c0-.9,.3-1.72,.8-2.4-.36-2.14-1.2-4.11-2.4-5.81-.83-.13-1.63-.49-2.26-1.13s-1.01-1.44-1.13-2.26c-1.7-1.2-3.67-2.04-5.81-2.4-.67,.5-1.5,.8-2.4,.8s-1.72-.3-2.4-.8c-2.14,.36-4.11,1.2-5.81,2.4-.13,.83-.49,1.63-1.13,2.26s-1.44,1.01-2.26,1.13c-1.2,1.7-2.04,3.67-2.4,5.81,.5,.67,.8,1.5,.8,2.4s-.3,1.72-.8,2.4c.36,2.14,1.2,4.11,2.4,5.81,.83,.13,1.63,.49,2.26,1.13,.64,.64,1.01,1.44,1.13,2.26,1.7,1.2,3.67,2.04,5.81,2.4,.67-.5,1.5-.8,2.4-.8s1.72,.3,2.4,.8c2.14-.36,4.11-1.2,5.81-2.4,.13-.83,.49-1.63,1.13-2.26,.64-.64,1.44-1.01,2.26-1.13,1.2-1.7,2.04-3.67,2.4-5.81-.5-.67-.8-1.5-.8-2.4Z"
       />
-      <circle cx="33" cy="32" r="9" fill="#f5dd90" />
+      <circle cx="32" cy="32" r="9" fill="#f5dd90" />
       <path
         fill="#6096ba"
         d="M7,32c0-14.36,11.64-26,26-26v4c-12.15,0-22,9.85-22,22"
@@ -68,75 +72,55 @@
     </svg>
   </button>
 
-  {#if $sidebarState === "max"}
-    <div
-      transition:slide={{ axis: "x", duration: 300, easing: cubicInOut }}
-      class="nav-toolbar -ml-7 flex h-8 w-56 items-center self-center rounded-full
-        border-2 border-base-100 bg-base-200 pl-7 shadow-sm"
-    >
-      <div class="nav-options flex h-full items-center">
-        <label
-          class="swap-rotate swap ml-1 rounded-full p-1 hover:bg-primary hover:drop-shadow-md"
-        >
-          <input
-            id="data-toggle-theme"
-            type="checkbox"
-            bind:checked={darkMode}
-            on:change={setDataTheme}
-          />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width={1.5}
-            stroke="currentColor"
-            class="swap-on h-[1.17rem] w-[1.17rem]"
-          >
-            <path d={icons.moon} />
-          </svg>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width={1.5}
-            stroke="currentColor"
-            class="swap-off h-[1.17rem] w-[1.17rem]"
-          >
-            <path d={icons.sun} />
-          </svg>
-        </label>
-
-        <button
-          class="z-50 rounded-full p-1 hover:bg-primary hover:drop-shadow-md"
-          on:click={() => {
-            $showSettings = true;
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width={1.25}
-            stroke="currentColor"
-            class="h-[1.17rem] w-[1.17rem]"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d={icons.cogWheel}
-            />
-          </svg>
-        </button>
-      </div>
-
-      <div
-        class="nav-logo group flex h-full items-center rounded-full bg-gradient-to-r
-          from-base-200 via-primary to-primary"
+  <div
+    class="nav-toolbar border-base-100 bg-base-200 flex h-8 w-56 items-center
+      self-center rounded-full border-2 pl-7 shadow-sm {transitionEffects}
+      {$sidebarState === 'max' ? '-ml-7' : '-ml-72'}"
+  >
+    <div class="nav-options flex h-full w-full items-center">
+      <label
+        class="swap swap-rotate hover:bg-primary ml-1 rounded-full p-1 hover:drop-shadow-md"
       >
-        <div class="group-item flex duration-300 ease-in-out {fontLogo}">
-          {logoName}
-        </div>
+        <input
+          id="data-toggle-theme"
+          type="checkbox"
+          bind:checked={darkMode}
+          on:change={setDataTheme}
+        />
+        <SvgIcon
+          classNames={`${svgIconClassNames} swap-on`}
+          strokeWidth={svgIconStrokeWidth}
+          type={"moon"}
+        />
+        <SvgIcon
+          classNames={`${svgIconClassNames} swap-off`}
+          strokeWidth={svgIconStrokeWidth}
+          type={"sun"}
+        />
+      </label>
+
+      <button
+        class="hover:bg-primary rounded-full p-1 hover:drop-shadow-md"
+        on:click={() => {
+          $showSettings = true;
+        }}
+      >
+        <SvgIcon
+          classNames={svgIconClassNames}
+          strokeWidth={svgIconStrokeWidth}
+          type={"cogWheel"}
+        />
+      </button>
+    </div>
+
+    <div
+      class="nav-logo from-base-200 via-primary to-primary group flex h-full
+        w-full items-center rounded-full bg-gradient-to-r pl-7
+        {$sidebarState === 'max' ? '' : 'hidden'}"
+    >
+      <div class="group-item flex {fontLogo}">
+        {logoName}
       </div>
     </div>
-  {/if}
+  </div>
 </div>

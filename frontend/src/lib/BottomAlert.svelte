@@ -1,22 +1,26 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
-  import { icons } from "./util";
+  import SvgIcon from "./SvgIcon.svelte";
   import type { Alert } from "./types";
 
   export let alert: Alert;
 
-  const iconType = (at: Alert["type"]): string | undefined => {
+  const alertClassNames = "z-20 rounded-lg absolute bottom-0";
+  const svgIconStrokeWidth: number = 1.5;
+  const svgIconClassNames: string = "h-6 w-6 shrink-0 stroke-current";
+
+  const iconType = (at: Alert["type"]) => {
     switch (at) {
       case "info":
-        return icons.info;
+        return "info";
       case "warning":
-        return icons.warning;
+        return "warning";
       case "error":
-        return icons.closeCircle;
+        return "closeCircle";
     }
   };
 
-  const alertColor = (at: Alert["type"]): string | undefined => {
+  const alertColor = (at: Alert["type"]): string => {
     switch (at) {
       case "info":
         return "alert-info";
@@ -24,29 +28,19 @@
         return "alert-warning";
       case "error":
         return "alert-error";
+      default:
+        return "";
     }
   };
 </script>
 
 {#if alert.message}
   <div
-    class="alert absolute bottom-0 {alertColor(alert.type)} z-20 rounded-lg"
+    class="alert {alertColor(alert.type)} {alert.className || alertClassNames}"
     in:slide={{ duration: 200 }}
     out:slide={{ duration: 200 }}
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      class="h-6 w-6 shrink-0 stroke-current"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.5"
-        d={iconType(alert.type)}
-      />
-    </svg>
+    <SvgIcon classNames={svgIconClassNames} type={iconType(alert.type)} />
     <span>{alert.message}</span>
     <div class="spacer flex grow items-center" />
     <button
@@ -55,19 +49,7 @@
         alert.message = "";
       }}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-6 w-6 shrink-0 stroke-current"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1.5"
-          d={icons.close}
-        />
-      </svg>
+      <SvgIcon strokeWidth={svgIconStrokeWidth} type={"close"} />
     </button>
   </div>
 {/if}

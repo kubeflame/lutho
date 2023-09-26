@@ -1,23 +1,24 @@
 <script lang="ts">
-  import CodeMirror from "../lib/CodeMirror.svelte";
+  import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
-  import { fade } from "svelte/transition";
-  import { tabs, routeString, ServiceV1GVRK } from "../lib/util";
-  import { TabIndex, KubeDataOpType } from "../lib/types";
-  import type { V1Service } from "@kubernetes/client-node/dist/gen/api";
+  import { tabs, routeString, ServiceV1GVRK, getLabels } from "../lib/util";
+  import type { V1Service } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import type { TabQueryParam } from "../lib/types";
+  import Details from "../lib/Details.svelte";
+  import EmbeddedTable from "../lib/tables/EmbeddedTable.svelte";
 
   export let params: any;
 
   const tabItems = [tabs.details, tabs.yaml];
   const { sockError, isLoading, dataSend, dataGet, dataUpdate } = socketStore();
 
-  let activeTab: number = TabIndex.DETAILS;
+  let tabQueryParam: TabQueryParam;
   let docStore: any;
   let serviceData: V1Service;
   let codeMirrorChanged: boolean;
@@ -31,11 +32,11 @@
 
   $dataSend = [
     {
-      type: KubeDataOpType.get,
+      type: "get",
       request: {
         namespace: params.namespace,
         name: params.name,
-        ...ServiceV1GVRK,
+        kubeGVRK: ServiceV1GVRK,
       },
     },
   ];
@@ -47,11 +48,11 @@
   function update() {
     $dataSend = [
       {
-        type: KubeDataOpType.update,
+        type: "update",
         request: {
           namespace: params.namespace,
           name: params.name,
-          ...ServiceV1GVRK,
+          kubeGVRK: ServiceV1GVRK,
           data: JSON.stringify(fromYaml($docStore)),
         },
       },
@@ -60,26 +61,131 @@
 </script>
 
 <HeaderElement>
-  <Tabs slot="tabs" bind:activeTab {tabItems} />
-  <ResourceToolbar
-    slot="toolbar"
-    bind:codeMirrorChanged
-    bind:toolbarContent
-    bind:activeTab
-    onClickSubmit={update}
+  <Tabs
+    slot="tabs"
+    bind:tabQueryParam
+    tabQueryParamDefault={"details"}
+    {tabItems}
   />
 </HeaderElement>
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if activeTab === TabIndex.YAML}
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar
+    slot="resource-toolbar"
+    bind:codeMirrorChanged
+    bind:tabQueryParam
+    onClickSubmit={update}
+  >
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  {#if tabQueryParam === "details"}
+    <Details title={"Resource Information"}>
+      <EmbeddedTable
+        tagName={"Summary"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          { name: "Name", value: serviceData?.metadata?.name },
+          { name: "Namespace", value: serviceData?.metadata?.namespace },
+          {
+            name: "Creation Timestamp",
+            value: serviceData?.metadata?.creationTimestamp,
+          },
+          {
+            name: "Finalizerz",
+            value:
+              JSON.stringify(serviceData?.metadata?.finalizers, null, 2) ??
+              "{}",
+            className:
+              "max-h-fit w-full rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm whitespace-pre",
+          },
+          {
+            name: "UID",
+            value: serviceData?.metadata?.uid,
+          },
+        ]}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Annotations"}
+        tableItems={getLabels(serviceData?.metadata?.annotations)}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Labels"}
+        tableItems={getLabels(serviceData?.metadata?.labels)}
+      />
+    </Details>
+
+    <Details title={"Spec"}>
+      <EmbeddedTable
+        tableType={"custom-vertical"}
+        tableItems={[
+          {
+            name: "Type",
+            value: serviceData?.spec?.type,
+          },
+          {
+            name: "Allocate Load Balancer Node Ports",
+            value: serviceData?.spec?.allocateLoadBalancerNodePorts,
+          },
+          {
+            name: "External Traffic Policy",
+            value: serviceData?.spec?.externalTrafficPolicy,
+          },
+          {
+            name: "Internal Traffic Policy",
+            value: serviceData?.spec?.internalTrafficPolicy,
+          },
+          {
+            name: "Session Affinity",
+            value: serviceData?.spec?.sessionAffinity,
+          },
+          {
+            name: "Cluster IPs",
+            value:
+              JSON.stringify(serviceData?.spec?.clusterIPs, null, 2) ?? "{}",
+            className:
+              "max-h-fit w-full rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm whitespace-pre",
+          },
+          {
+            name: "Ports",
+            value: JSON.stringify(serviceData?.spec?.ports, null, 2) ?? "{}",
+            className:
+              "max-h-fit w-full rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm whitespace-pre",
+          },
+          {
+            name: "Selector",
+            value: JSON.stringify(serviceData?.spec?.selector, null, 2) ?? "{}",
+            className:
+              "max-h-fit w-full rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm whitespace-pre",
+          },
+        ]}
+      />
+    </Details>
+
+    <Details title={"Status"}>
+      <EmbeddedTable
+        tableType={"custom-vertical"}
+        tableItems={[
+          {
+            name: "Load Balancer",
+            value:
+              JSON.stringify(serviceData?.status?.loadBalancer, null, 2) ??
+              "{}",
+            className:
+              "max-h-fit w-full rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm whitespace-pre",
+          },
+        ]}
+      />
+    </Details>
+  {:else if tabQueryParam === "yaml"}
     <CodeMirror
-      doc={toYaml(serviceData)}
+      value={toYaml(serviceData)}
       bind:codeMirrorChanged
       bind:docStore
     />
   {/if}
-</div>
+</RouterPage>

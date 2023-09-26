@@ -1,70 +1,93 @@
 <script lang="ts">
+  import ClusterConnection from "./ClusterConnection.svelte";
+  import NamespaceSelect from "./NamespaceSelect.svelte";
   import NavControl from "./NavControl.svelte";
-  import { kubeAuthState, sidebarState } from "./stores";
-  import { icons } from "./util";
+  import SvgIcon from "./SvgIcon.svelte";
+  import Utils from "./Utils.svelte";
+  import { kubeHost, showUtils, sidebarState } from "./stores";
+  import { transitionEffects } from "./util";
 
   export let headerContentClassName: string = "";
   export let logoClassName: string = "";
+  export let showNamespaceSelect: boolean = false;
 
   const logoName = "LUTHO";
   const fontLogo = "font-mono font-thin tracking-wider";
-  const userName = "Lutho Doe";
 
-  function onClickAuthButton() {
-    $kubeAuthState = $kubeAuthState === "false" ? "true" : "false";
-    console.log("authState:", $kubeAuthState);
-    localStorage.setItem("authState", $kubeAuthState);
-  }
+  let connectionDialog: HTMLDialogElement;
+
+  $: headerUtilsStyle = $kubeHost
+    ? "border-base-300 bg-base-100 text-center"
+    : "text-base-content/55 border-error bg-base-200 text-center";
 </script>
 
-<header class="header sticky top-0 z-50">
+<ClusterConnection bind:dialog={connectionDialog} />
+
+<Utils />
+
+<div
+  class="header-content no-scrollbar {headerContentClassName} bg-base-200
+    flex h-10 items-center justify-center p-1"
+>
+  <NavControl />
+
   <div
-    class="header-content {headerContentClassName} flex h-10 items-center
-      justify-center bg-base-200 p-1"
+    class="logo {logoClassName} flex px-6 {transitionEffects} {fontLogo}
+      {$sidebarState === 'max' ? '-ml-20' : 'ml-10'}"
   >
-    <NavControl />
+    {logoName}
+  </div>
+
+  <div
+    class="mb-1 grid grid-flow-col grid-rows-1 items-center
+      justify-center gap-6 {transitionEffects}"
+  >
+    <slot name="tabs" />
+  </div>
+
+  <div class="spacer flex grow items-center" />
+
+  <div
+    class="header-utils mr-2 flex !h-7 items-center space-x-2 {transitionEffects}"
+  >
+    {#if showNamespaceSelect}
+      <NamespaceSelect />
+    {/if}
+
+    <button
+      class="btn-xs bg-base-100 border-base-300 hover:bg-primary flex
+        !h-full items-center rounded-xl border p-3 shadow-sm"
+      on:click={() => ($showUtils = !$showUtils)}
+    >
+      <SvgIcon type={"util"} classNames={"size-5"} />
+    </button>
 
     <div
-      class="logo {logoClassName} mt-1 flex px-5 duration-300 ease-in-out {fontLogo}
-        {$sidebarState === 'max' ? '-ml-20 pr-8' : ''}"
+      class="join flex !h-full content-center items-center
+        rounded-xl font-mono text-sm font-thin tracking-wide shadow-sm"
     >
-      {logoName}
-    </div>
-
-    <div
-      class="grid transform grid-flow-col grid-rows-1 items-center justify-center
-        gap-5 align-middle duration-300 ease-in-out"
-    >
-      <slot name="namespace" />
-      <slot name="tabs" />
-    </div>
-
-    <div class="spacer flex grow items-center" />
-
-    <div class="flex flex-none items-center justify-center text-center">
-      <div class="flex items-center space-x-3 px-3">
-        <div class="flex flex-none justify-center">
-          <div class="flex h-8 w-8 items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1"
-              stroke="currentColor"
-              class="rounded-full object-cover"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d={icons.user}
-              />
-            </svg>
-          </div>
-        </div>
-        <div class="md:text-md hidden text-sm md:block">{userName}</div>
+      <button
+        class="btn join-item btn-xs bg-base-100 hover:bg-primary
+          flex h-full min-w-fit max-w-fit {headerUtilsStyle}"
+        on:click={() => connectionDialog.showModal()}
+      >
+        <SvgIcon
+          type={$kubeHost ? "cloudOn" : "cloudOff"}
+          fill={$kubeHost ? "oklch(var(--p))" : "oklch(var(--er))"}
+          stroke={"oklch(var(--b1))"}
+          classNames={"size-6"}
+          strokeWidth={1.5}
+        />
+      </button>
+      <div
+        id="cluster-connection"
+        class="dropdown dropdown-hover join-item relative flex h-full max-w-32
+          content-center items-center border px-2 lg:max-w-md xl:max-w-lg {headerUtilsStyle}"
+      >
+        <span class="overflow-hidden text-ellipsis">
+          {$kubeHost || "not connected"}
+        </span>
       </div>
     </div>
-    <button class="btn btn-xs" on:click={onClickAuthButton}>Auth</button>
   </div>
-  <slot name="toolbar" />
-</header>
+</div>

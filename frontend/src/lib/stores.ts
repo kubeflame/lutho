@@ -17,15 +17,12 @@ export const settingsData = writable<SettingsData>(
 
 export const showUtils = writable<boolean>(false);
 
-export const availableContainers = writable<Array<string>>([]);
-
-export const embeddedActiveTab = writable<number | undefined>();
-
 export const yamlHasChanges = writable<boolean>(false);
 export const discardYamlChanges = writable<boolean>(false);
 export const submitYamlChanges = writable<boolean>(false);
 
 export const statusCode = writable<number>();
-export const kubeAuthState = writable<string>(
-  localStorage.getItem("authState") ?? "false",
-);
+
+export const kubeHost = writable<string>("");
+
+export const updatingRepos = writable<{ [key: string]: boolean }>({});

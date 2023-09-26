@@ -2,81 +2,25 @@ package main
 
 import (
 	"context"
-	"flag"
-	"path/filepath"
 
+	v1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
-type KubeconfigType int
-
-const (
-	Config KubeconfigType = iota
-	AccessToken
-)
-
-type KubeconfigInit struct {
-	MasterURL   string
-	AccessToken string
-	Type        KubeconfigType
-	TLSInsecure bool
+type CreateResource struct {
+	Namespace string
+	Options   metav1.CreateOptions
+	GVR       schema.GroupVersionResource
+	Object    *unstructured.Unstructured
 }
 
-func initKubeconfig(ki *KubeconfigInit) (config *rest.Config, err error) {
-	switch ki.Type {
-	case Config:
-		var kubeconfig *string
-		if home := homedir.HomeDir(); home != "" {
-			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
-
-		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-		if err != nil {
-			return nil, err
-		}
-		// Show current-context only when the config is created outside the cluster
-
-		// config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		// 	&clientcmd.ClientConfigLoadingRules{ExplicitPath: *kubeconfig},
-		// 	&clientcmd.ConfigOverrides{
-		// 		CurrentContext: "",
-		// 	}).RawConfig()
-
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
-		// currentContext := config.CurrentContext
-
-		// fmt.Println("currentContext:", currentContext)
-	case AccessToken:
-		config, err = clientcmd.BuildConfigFromFlags(ki.MasterURL, "")
-		if err != nil {
-			return nil, err
-		}
-		config.BearerToken = ki.AccessToken
-		config.TLSClientConfig = rest.TLSClientConfig{Insecure: ki.TLSInsecure}
-	}
-
-	return config, nil
-}
-
-func initClientset(config *rest.Config) (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(config)
-}
-
-func initDynamicClient(config *rest.Config) (*dynamic.DynamicClient, error) {
-	return dynamic.NewForConfig(config)
+func (cd *CreateResource) Create(client *dynamic.DynamicClient) (*unstructured.Unstructured, error) {
+	return client.Resource(cd.GVR).Namespace(cd.Namespace).Create(context.TODO(), cd.Object, cd.Options)
 }
 
 type ListResource struct {
@@ -149,4 +93,13 @@ type DeleteResource struct {
 
 func (dr *DeleteResource) Delete(client *dynamic.DynamicClient) error {
 	return client.Resource(dr.GVR).Namespace(dr.Namespace).Delete(context.TODO(), dr.Name, dr.Options)
+}
+
+type SelfSubjectAccessReviewResource struct {
+	Options metav1.CreateOptions
+	SSAR    *v1.SelfSubjectAccessReview
+}
+
+func (arr *SelfSubjectAccessReviewResource) Review(client kubernetes.Interface) (*v1.SelfSubjectAccessReview, error) {
+	return client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), arr.SSAR, arr.Options)
 }

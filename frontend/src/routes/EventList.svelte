@@ -1,18 +1,16 @@
 <script lang="ts">
-  import { link } from "svelte-spa-router";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
   import { namespace } from "../lib/stores";
-  import { fade } from "svelte/transition";
   import { routeString, EventV1GVRK } from "../lib/util";
-  import type { EventsV1EventList } from "@kubernetes/client-node";
+  import type { CoreV1EventList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
-  import NamespaceSelect from "../lib/NamespaceSelect.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
-  import { KubeDataOpType } from "../lib/types";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import ListTable from "../lib/tables/ListTable.svelte";
+  import EmbeddedOptions from "../lib/tables/EmbeddedOptions.svelte";
 
-  let eventListData: EventsV1EventList;
+  let eventListData: CoreV1EventList;
 
   const { sockError, isLoading, dataSend, dataList, dataDelete } =
     socketStore();
@@ -21,10 +19,10 @@
 
   $: $dataSend = [
     {
-      type: KubeDataOpType.list,
+      type: "list",
       request: {
         namespace: $namespace,
-        ...EventV1GVRK,
+        kubeGVRK: EventV1GVRK,
       },
     },
   ];
@@ -35,51 +33,61 @@
     if (!err)
       $dataSend = [
         {
-          type: KubeDataOpType.list,
+          type: "list",
           request: {
             namespace: $namespace,
-            ...EventV1GVRK,
+            kubeGVRK: EventV1GVRK,
           },
         },
       ];
   });
+
+  function onDelete(item: any) {
+    $dataSend = [
+      {
+        type: "delete",
+        request: {
+          name: item.metadata?.name,
+          namespace: item.metadata?.namespace,
+          kubeGVRK: EventV1GVRK,
+        },
+      },
+    ];
+  }
 </script>
 
-<HeaderElement>
-  <NamespaceSelect slot="namespace" />
-  <ResourceToolbar slot="toolbar" bind:toolbarContent />
-</HeaderElement>
+<HeaderElement showNamespaceSelect />
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if eventListData}
-    <table class="table table-pin-rows">
-      <thead>
-        <tr class="bg-base-200 shadow-sm">
-          <th>Name</th>
-          <th>Namespace</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each eventListData.items as event}
-          <tr>
-            <td>
-              <a
-                class="hover:text-primary"
-                href="{routeString.eventList}/{event.metadata?.namespace}/{event
-                  .metadata?.name}"
-                use:link
-              >
-                {event.metadata?.name}
-              </a>
-            </td>
-            <td>{event.metadata?.namespace}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  {/if}
-</div>
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar slot="resource-toolbar">
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  <ListTable
+    hrefRoot={routeString.eventList}
+    isNamespaced={true}
+    tableHead={["Name", "Namespace", "Created At", ""]}
+    items={eventListData?.items}
+  >
+    <td
+      class="flex place-items-center items-center justify-end"
+      slot="embeddedOptions"
+      let:item
+    >
+      <EmbeddedOptions
+        embeddedOptionsData={[
+          {
+            fn: () => {},
+            dialog: {
+              action: () => onDelete(item),
+              type: "Delete",
+              resourceName: item.metadata?.name,
+            },
+            classes: "hover:btn-error",
+            icon: "trash",
+          },
+        ]}
+      />
+    </td>
+  </ListTable>
+</RouterPage>

@@ -1,23 +1,29 @@
 <script lang="ts">
-  import CodeMirror from "../lib/CodeMirror.svelte";
+  import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import ErrorPage from "../lib/ErrorPage.svelte";
-  import LoadingNewton from "../lib/LoadingNewton.svelte";
-  import { fade } from "svelte/transition";
-  import { tabs, routeString, StorageClassV1GVRK } from "../lib/util";
-  import { TabIndex, KubeDataOpType } from "../lib/types";
-  import type { V1StorageClass } from "@kubernetes/client-node/dist/gen/api";
+  import {
+    tabs,
+    routeString,
+    StorageClassV1GVRK,
+    getLabels,
+  } from "../lib/util";
+  import type { V1StorageClass } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
   import socketStore from "../lib/socketStore";
+  import RouterPage from "../lib/RouterPage.svelte";
+  import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
+  import type { TabQueryParam } from "../lib/types";
+  import Details from "../lib/Details.svelte";
+  import EmbeddedTable from "../lib/tables/EmbeddedTable.svelte";
 
   export let params: any;
 
   const tabItems = [tabs.details, tabs.yaml];
   const { sockError, isLoading, dataSend, dataGet, dataUpdate } = socketStore();
 
-  let activeTab: number = TabIndex.DETAILS;
+  let tabQueryParam: TabQueryParam;
   let docStore: any;
   let storageClassData: V1StorageClass;
   let codeMirrorChanged: boolean;
@@ -29,10 +35,10 @@
 
   $dataSend = [
     {
-      type: KubeDataOpType.get,
+      type: "get",
       request: {
         name: params.name,
-        ...StorageClassV1GVRK,
+        kubeGVRK: StorageClassV1GVRK,
       },
     },
   ];
@@ -46,10 +52,10 @@
   function update() {
     $dataSend = [
       {
-        type: KubeDataOpType.update,
+        type: "update",
         request: {
           name: params.name,
-          ...StorageClassV1GVRK,
+          kubeGVRK: StorageClassV1GVRK,
           data: JSON.stringify(fromYaml($docStore)),
         },
       },
@@ -58,26 +64,72 @@
 </script>
 
 <HeaderElement>
-  <Tabs slot="tabs" bind:activeTab {tabItems} />
-  <ResourceToolbar
-    slot="toolbar"
-    bind:codeMirrorChanged
-    bind:toolbarContent
-    bind:activeTab
-    onClickSubmit={update}
+  <Tabs
+    slot="tabs"
+    bind:tabQueryParam
+    tabQueryParamDefault={"details"}
+    {tabItems}
   />
 </HeaderElement>
 
-<div class="router-page" in:fade|global={{ duration: 250 }}>
-  {#if $sockError}
-    <ErrorPage bind:errorMessage={$sockError} />
-  {:else if $isLoading}
-    <LoadingNewton />
-  {:else if activeTab === TabIndex.YAML}
+<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+  <ResourceToolbar
+    slot="resource-toolbar"
+    bind:codeMirrorChanged
+    bind:tabQueryParam
+    onClickSubmit={update}
+  >
+    <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
+  </ResourceToolbar>
+
+  {#if tabQueryParam === "details"}
+    <Details title={"Resource Information"}>
+      <EmbeddedTable
+        tagName={"Summary"}
+        tableType={"custom-vertical"}
+        tableItems={[
+          { name: "Name", value: storageClassData?.metadata?.name },
+          { name: "Namespace", value: storageClassData?.metadata?.namespace },
+          {
+            name: "Creation Timestamp",
+            value: storageClassData?.metadata?.creationTimestamp,
+          },
+          {
+            name: "Provisioner",
+            value: storageClassData?.provisioner,
+          },
+          {
+            name: "Reclaim Policy",
+            value: storageClassData?.reclaimPolicy,
+          },
+          {
+            name: "Volume Binding Mode",
+            value: storageClassData?.volumeBindingMode,
+          },
+          {
+            name: "UID",
+            value: storageClassData?.metadata?.uid,
+          },
+        ]}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Annotations"}
+        tableItems={getLabels(storageClassData?.metadata?.annotations)}
+      />
+
+      <EmbeddedTable
+        tableType={"badges"}
+        tagName={"Labels"}
+        tableItems={getLabels(storageClassData?.metadata?.labels)}
+      />
+    </Details>
+  {:else if tabQueryParam === "yaml"}
     <CodeMirror
-      doc={toYaml(storageClassData)}
+      value={toYaml(storageClassData)}
       bind:codeMirrorChanged
       bind:docStore
     />
   {/if}
-</div>
+</RouterPage>

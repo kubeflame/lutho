@@ -1,51 +1,73 @@
 <script lang="ts">
   import SockJS from "sockjs-client/dist/sockjs";
-  import { WSCloseCode, type Alert, type LogStreamMessage } from "./types";
+  import type { Alert, LogStreamMessage } from "./types";
   import { onDestroy } from "svelte";
-  import { availableContainers } from "./stores";
-  import { apiURL } from "./util";
+  import { apiURL, transitionEffects, WSCloseCode } from "./util";
   import Convert from "ansi-to-html";
   import BottomAlert from "./BottomAlert.svelte";
   import LoadingNewton from "./LoadingNewton.svelte";
+  import type { Writable } from "svelte/store";
 
-  export let termParams: any;
-  export let followLogs: boolean;
-  export let stopLogs: boolean;
-  export let refreshLogsComponent: boolean;
-  export let activeContainer: string = "";
+  export let name: string = "";
+  export let namespace: string = "";
+  export let followLogs: boolean = false;
+  export let activeContainer: Writable<string>;
+  export let onChangeLogsBtn: Writable<Event>;
 
-  const convert = new Convert();
-
-  $: alert = { message: null, type: null } as Alert;
+  const convert = new Convert({ newline: true });
 
   let isFetching: boolean;
   let sessionId = "";
   let sock: WebSocket;
   let el: Element;
 
-  async function newSession() {
+  onChangeLogsBtn.subscribe((c) => {
+    if (c && !followLogs)
+      sock?.close(WSCloseCode.warning, "Log tailing stopped.");
+  });
+
+  activeContainer.subscribe((ac) => {
+    if (ac) {
+      if (followLogs && sock?.readyState === WebSocket.OPEN) {
+        followLogs = false;
+        sock?.close(WSCloseCode.warning, "Log tailing stopped.");
+      }
+      newSession(ac);
+    }
+  });
+
+  $: alert = { message: null, type: null } as Alert;
+  $: if (followLogs && $activeContainer) {
+    el?.insertAdjacentHTML(
+      "beforeend",
+      "<div class='divider text-info'>   ** Log tailing started **   </div>",
+    );
+    newSession($activeContainer);
+  }
+
+  async function newSession(container: string) {
     isFetching = true;
     alert = { message: null, type: null };
 
-    $availableContainers = termParams.containers;
-    if (activeContainer === "") {
-      activeContainer = $availableContainers[0];
-    }
+    if (el && !followLogs) el.innerHTML = "";
 
     sock = new SockJS(`http://${location.host}${apiURL.logs}`);
 
-    sessionId = await fetch(
-      `${apiURL.logsStream}?namespace=${termParams.namespace}&name=${
-        termParams.name
-      }&container=${activeContainer}&follow=${followLogs}&tailLines=${
-        followLogs ? "1" : ""
+    await fetch(
+      `${apiURL.logsStream}?namespace=${namespace}&name=${
+        name
+      }&container=${container}&follow=${followLogs}&tailLines=${
+        followLogs ? "1" : "1000"
       }`,
     )
       .then((resp) => {
         return resp.json();
       })
       .then((result: LogStreamMessage) => {
-        return result.sessionId;
+        sessionId = result.sessionId;
+      })
+      .catch((error) => {
+        alert = { message: error, type: "error" };
       });
 
     sock.onopen = function () {
@@ -56,8 +78,15 @@
 
     sock.onmessage = function (e: MessageEvent<any>) {
       let resp: LogStreamMessage = JSON.parse(e.data);
-      if (resp.op === "stdout") {
-        el.insertAdjacentHTML("beforeend", convert.toHtml(resp.data) + "</br>");
+      if (resp.op === "bind") {
+        sock.send(
+          JSON.stringify({
+            op: "stdin",
+            sessionId: sessionId,
+          }),
+        );
+      } else if (resp.op === "stdout") {
+        el?.insertAdjacentHTML("beforeend", convert.toHtml(resp.data));
         if (followLogs) {
           el.scroll({
             top: el.scrollHeight,
@@ -68,9 +97,6 @@
     };
 
     sock.onclose = function (e) {
-      const endData = { Op: "close", SessionID: sessionId };
-      sock.send(JSON.stringify(endData));
-      refreshLogsComponent = false;
       if (e.code === WSCloseCode.info) {
         alert = { message: e.reason, type: "info" };
       } else if (e.code === WSCloseCode.error && e.reason === "EOF") {
@@ -83,36 +109,13 @@
     };
 
     sock.onerror = function (e) {
-      console.error(e);
+      alert = { message: e.toString(), type: "error" };
     };
   }
 
-  newSession();
-
-  $: if (refreshLogsComponent) {
-    el.innerHTML = "";
-    newSession();
-  }
-
-  $: if (followLogs) {
-    el.insertAdjacentHTML(
-      "beforeend",
-      "<div class='divider text-info'>   ** Log tailing started **   </div>",
-    );
-    newSession();
-  }
-
-  $: if (stopLogs) {
-    const endData = { Op: "close", SessionID: sessionId };
-    sock.send(JSON.stringify(endData));
-    sock.close(WSCloseCode.warning, "Log tailing stopped");
-    stopLogs = false;
-  }
-
-  onDestroy(async () => {
+  onDestroy(() => {
     followLogs = false;
-    stopLogs = false;
-    sock.close(WSCloseCode.info);
+    sock?.readyState === WebSocket.OPEN && sock?.close(WSCloseCode.info);
   });
 </script>
 
@@ -121,8 +124,11 @@
 {/if}
 
 <div
-  class="logs-element flex h-full w-full transform rounded-lg font-mono text-sm duration-300 ease-in-out"
+  class="logs-element flex h-full w-full rounded-lg font-mono text-sm {transitionEffects}"
 >
-  <div bind:this={el} class="logs h-full w-full overflow-y-scroll p-4" />
+  <div
+    bind:this={el}
+    class="logs h-full w-full overflow-y-scroll p-4 {transitionEffects}"
+  />
   <BottomAlert bind:alert />
 </div>

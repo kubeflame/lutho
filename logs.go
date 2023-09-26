@@ -35,43 +35,6 @@ type LogStreamMessage struct {
 	StatusCode uint   `json:"statusCode"`
 }
 
-func (lss LogStreamSession) Read(p []byte) (int, error) {
-	m, err := lss.sockJSSession.Recv()
-	if err != nil {
-		return copy(p, END_OF_TRANSMISSION), err
-	}
-
-	var msg LogStreamMessage
-	if err := json.Unmarshal([]byte(m), &msg); err != nil {
-		return copy(p, END_OF_TRANSMISSION), err
-	}
-
-	switch msg.Op {
-	case WSOpType.stdin:
-		return copy(p, msg.Data), nil
-	case WSOpType.close:
-		close(lss.close)
-		return copy(p, END_OF_TRANSMISSION), nil
-	default:
-		return copy(p, END_OF_TRANSMISSION), fmt.Errorf("unknown message type '%s'", msg.Op)
-	}
-}
-
-func (lss LogStreamSession) Write(p []byte) (int, error) {
-	msg, err := json.Marshal(LogStreamMessage{
-		Op:   WSOpType.stdout,
-		Data: string(p),
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	if err := lss.sockJSSession.Send(string(msg)); err != nil {
-		return 0, err
-	}
-	return len(p), nil
-}
-
 type LogStreamSessionMap struct {
 	Sessions map[string]LogStreamSession
 	Lock     sync.RWMutex
@@ -101,10 +64,10 @@ var logStreamSessions = LogStreamSessionMap{Sessions: make(map[string]LogStreamS
 
 func handleLogStreamSession(session sockjs.Session) {
 	var (
-		buf              string
-		err              error
-		msg              LogStreamMessage
-		logStreamSession LogStreamSession
+		buf string
+		err error
+		msg LogStreamMessage
+		lss LogStreamSession
 	)
 
 	if session.GetSessionState() != sockjs.SessionActive {
@@ -126,57 +89,31 @@ func handleLogStreamSession(session sockjs.Session) {
 		return
 	}
 
-	if logStreamSession = logStreamSessions.Get(msg.SessionID); logStreamSession.id == "" {
+	if lss = logStreamSessions.Get(msg.SessionID); lss.id == "" {
 		fmt.Printf("handleLogStreamSession: can't find session '%s'\n", msg.SessionID)
 		return
 	}
 
-	logStreamSession.sockJSSession = session
-	logStreamSessions.Set(msg.SessionID, logStreamSession)
-	logStreamSession.bound <- nil
-}
+	lss.sockJSSession = session
+	logStreamSessions.Set(msg.SessionID, lss)
+	lss.bound <- nil
 
-type PodLogsData struct {
-	Namespace      string
-	Name           string
-	ResourceType   string
-	ContainerName  string
-	Follow         string
-	TailLines      string
-	Options        *v1.PodLogOptions
-	ParameterCodec runtime.ParameterCodec
-}
-
-func readLines(response io.ReadCloser, done chan struct{}, lsh LogStreamHandler) error {
-	cancel := make(chan struct{})
-	go func() {
-		if _, err := lsh.Read([]byte{}); err != nil {
-			return
-		}
-
-		select {
-		case <-done:
-			response.Close()
-		case <-cancel:
-			return
-		}
-	}()
-
-	defer response.Close()
-	defer close(cancel) // ensure that goroutine exits
-
-	reader := bufio.NewReader(response)
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			return err
-		}
-		lsh.Write(line)
+	sendMsg, senderr := json.Marshal(LogStreamMessage{
+		Op:        WSOpType.bind,
+		SessionID: msg.SessionID,
+	})
+	if senderr != nil {
+		fmt.Println("handleStreamData senderr:", senderr)
+		return
 	}
 
+	if senderr := session.Send(string(sendMsg)); senderr != nil {
+		fmt.Println("handleStreamData senderr:", senderr)
+		return
+	}
 }
 
-func startLogsStream(client kubernetes.Interface, lsh LogStreamHandler, close chan struct{}, pld *PodLogsData) error {
+func (lss LogStreamSession) SendLogs(client kubernetes.Interface, pld *PodLogsData) error {
 	req := client.CoreV1().RESTClient().Get().
 		Namespace(pld.Namespace).
 		Name(pld.Name).
@@ -195,9 +132,60 @@ func startLogsStream(client kubernetes.Interface, lsh LogStreamHandler, close ch
 	}
 	defer out.Close()
 
-	errRead := readLines(out, close, lsh)
-	if errRead != nil {
-		return errRead
+	reader := bufio.NewReader(out)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			return err
+		}
+		msg, err := json.Marshal(LogStreamMessage{
+			Op:        WSOpType.stdout,
+			SessionID: lss.id,
+			Data:      string(line),
+		})
+		if err != nil {
+			return err
+		}
+
+		lss.sockJSSession.Send(string(msg))
+	}
+}
+
+type PodLogsData struct {
+	Namespace      string
+	Name           string
+	ResourceType   string
+	ContainerName  string
+	Follow         string
+	TailLines      string
+	Options        *v1.PodLogOptions
+	ParameterCodec runtime.ParameterCodec
+}
+
+func startLogsStream(client kubernetes.Interface, lss LogStreamSession, closeChan chan struct{}, pld *PodLogsData) error {
+	m, err := lss.sockJSSession.Recv()
+	if lss.sockJSSession.GetSessionState() != sockjs.SessionActive {
+		defer close(closeChan)
+		return nil
+	}
+	if err != nil {
+		defer close(closeChan)
+		return err
+	}
+
+	var msg LogStreamMessage
+	if err := json.Unmarshal([]byte(m), &msg); err != nil {
+		return err
+	}
+
+	switch {
+	case msg.Op == WSOpType.stdin && lss.id == msg.SessionID:
+		if err := lss.SendLogs(client, pld); err != nil {
+			return err
+		}
+	case msg.Op == WSOpType.close && lss.id == msg.SessionID:
+		defer close(closeChan)
+		return nil
 	}
 
 	return nil
@@ -214,7 +202,7 @@ func (pld *PodLogsData) WaitForLogs(client kubernetes.Interface, sessionId strin
 			return
 		}
 
-		logStreamSessions.Close(sessionId, WSCloseCode.info, "Process exited")
+		logStreamSessions.Close(sessionId, WSCloseCode.info, "process exited")
 
 	case <-time.After(30 * time.Second):
 		close(logStreamSessions.Get(sessionId).bound)
