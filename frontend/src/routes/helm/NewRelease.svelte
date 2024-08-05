@@ -4,7 +4,11 @@
   import ResourceToolbar from "../../lib/ResourceToolbar.svelte";
   import RouterPage from "../../lib/RouterPage.svelte";
   import socketStore from "../../lib/socketStore";
-  import type { HelmRepoData, TabQueryParam } from "../../lib/types";
+  import type {
+    DialogData,
+    HelmRepoData,
+    TabQueryParam,
+  } from "../../lib/types";
   import SvgIcon from "../../lib/SvgIcon.svelte";
   import DialogElement from "../../lib/DialogElement.svelte";
 
@@ -23,14 +27,28 @@
   $: allVersions = (chartRepo?.allVersions as string[]) || [
     chartRepo?.latestVersion,
   ];
-  $: helmShowValues = $dataGet;
+  $: helmShowValues = $showGet;
 
-  const { sockError, sockState, isLoading, dataSend, dataGet } = socketStore();
+  const {
+    sockError: installError,
+    sockState: installState,
+    isLoading: installLoading,
+    dataSend: installSend,
+    dataGet: installGet,
+  } = socketStore();
+
+  const {
+    sockError: showError,
+    sockState: showState,
+    isLoading: showLoading,
+    dataSend: showSend,
+    dataGet: showGet,
+  } = socketStore();
 
   function onShowValues() {
-    if ($sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
+    if ($showState.state === WebSocket.CLOSED) $showState.refresh = true;
 
-    $dataSend = [
+    $showSend = [
       {
         type: "helmShowValues",
         request: {
@@ -46,9 +64,9 @@
   }
 
   function onInstall() {
-    if ($sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
+    if ($installState.state === WebSocket.CLOSED) $installState.refresh = true;
 
-    $dataSend = [
+    $installSend = [
       {
         type: "helmInstall",
         request: {
@@ -70,12 +88,13 @@
     action: onInstall,
     resourceName: releaseName,
     type: "Install",
-  };
+    icon: "questionMark",
+  } as DialogData;
 </script>
 
 <DialogElement bind:dialogData bind:showDialog />
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:error={$showError} bind:loading={$showLoading}>
   <ResourceToolbar slot="resource-toolbar" bind:tabQueryParam>
     <div
       slot="custom"

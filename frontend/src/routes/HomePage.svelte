@@ -9,9 +9,11 @@
   const tabItems = [tabs.dashboard, tabs.search];
 
   let tabQueryParam: TabQueryParam;
+
+  $: showNamespaceSelect = tabQueryParam === "dashboard";
 </script>
 
-<HeaderElement showNamespaceSelect>
+<HeaderElement {showNamespaceSelect}>
   <Tabs
     slot="tabs"
     bind:tabQueryParam

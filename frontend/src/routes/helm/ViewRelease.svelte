@@ -58,10 +58,14 @@
   ];
 
   function getRepo(repoData: HelmRepoData[], name: string): HelmRepoData {
-    const repoIndex = repoData.findIndex((r) => {
-      return r.name === name;
-    });
-    return repoData[repoIndex];
+    if (repoData) {
+      const repoIndex = repoData?.findIndex((r) => {
+        return r.name === name;
+      });
+      return repoData[repoIndex];
+    } else {
+      return {} as HelmRepoData;
+    }
   }
 
   function upgradeRelease() {
@@ -175,7 +179,8 @@
     />
     <dialog bind:this={chartRefDialog} class="modal modal-middle">
       <div
-        class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)] max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
+        class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)]
+          max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
       >
         <div class="mb-5 flex items-center gap-x-1 text-sm">
           <SvgIcon classNames={"h-5 w-5"} strokeWidth={1.5} type={"update"} />
@@ -194,8 +199,8 @@
               id="chart-name-input"
               bind:value={chartName}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 text-base-300 flex grow focus:outline-0"
-              readonly
+              class="input input-xs join-item input-bordered bg-base-100 text-base-300
+                flex grow focus:outline-0"
             />
           </div>
           <div class="join h-6 w-full items-center">
@@ -209,8 +214,8 @@
               id="chart-url-input"
               bind:value={chartURL}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 text-base-300 flex grow focus:outline-0"
-              readonly
+              class="input input-xs join-item input-bordered bg-base-100 text-base-300
+                flex grow focus:outline-0"
             />
           </div>
           <div class="join h-6 w-full items-center">
@@ -231,13 +236,18 @@
 
         <div class="modal-action">
           <button
-            class="btn btn-xs outline-success hover:bg-success focus:outline-success place-self-end outline outline-1 drop-shadow-md focus:outline-1"
-            on:click={() => upgradeRelease()}
+            class="btn btn-xs outline-success hover:bg-success focus:outline-success place-self-end
+              outline outline-1 drop-shadow-md focus:outline-1"
+            on:click={() => {
+              upgradeRelease();
+              chartRefDialog.close();
+            }}
           >
             Upgrade
           </button>
           <button
-            class="btn btn-xs outline-error hover:bg-error focus:outline-error place-self-end outline outline-1 drop-shadow-md focus:outline-1"
+            class="btn btn-xs outline-error hover:bg-error focus:outline-error place-self-end
+              outline outline-1 drop-shadow-md focus:outline-1"
             on:click={() => chartRefDialog.close()}
           >
             Close

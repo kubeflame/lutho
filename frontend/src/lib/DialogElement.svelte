@@ -19,7 +19,7 @@
     class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)]
       max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
   >
-    <div class="mb-5 flex items-center gap-x-1">
+    <div class="text-md mb-5 flex items-center gap-x-1">
       <SvgIcon
         classNames={"h-5 w-5"}
         strokeWidth={1.5}

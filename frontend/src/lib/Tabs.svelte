@@ -11,7 +11,7 @@
   export let activeContainer = writable<string>();
   export let tabQueryParamDefault: TabQueryParam;
   export let tabQueryParam: TabQueryParam;
-  export let containers: string[];
+  export let containers: string[] = [];
 
   onMount(() => {
     if (!tabQueryParam && !window.location.pathname.startsWith("/srv")) {

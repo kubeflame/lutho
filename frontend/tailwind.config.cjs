@@ -6,6 +6,8 @@ const config = {
 
   plugins: [require("daisyui")],
 
+  darkMode: "class",
+
   daisyui: {
     styled: true,
     themes: [
@@ -14,6 +16,7 @@ const config = {
         dark: colorScheme.dark,
       },
     ],
+    darkTheme: "dark",
     base: true,
     utils: true,
     logs: false,

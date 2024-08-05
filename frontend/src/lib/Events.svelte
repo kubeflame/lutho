@@ -9,8 +9,8 @@
   export let svgIconClassNames: string = "h-4 w-4 text-base-content";
   export let svgIconStrokeWidth: number = 1.5;
 
-  if (kubeEvents?.length > 0 && eventsReversed === 0)
-    kubeEvents.reverse(), (eventsReversed += 1);
+  $: if (kubeEvents?.length > 0 && eventsReversed === 0)
+    kubeEvents.reverse(), (eventsReversed = 1);
 </script>
 
 {#if kubeEvents?.length > 0}

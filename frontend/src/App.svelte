@@ -3,14 +3,9 @@
   import routes from "./routes";
   import SidebarSlider from "./lib/SidebarSlider.svelte";
   import { onMount } from "svelte";
+  import { themeChange } from "theme-change";
 
-  onMount(() => {
-    const htmlEl = document.querySelector("html");
-    htmlEl?.setAttribute(
-      "data-theme",
-      (localStorage.getItem("theme") as string) ?? "light",
-    );
-  });
+  onMount(() => themeChange());
 </script>
 
 <SidebarSlider />

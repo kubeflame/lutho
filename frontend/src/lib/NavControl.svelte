@@ -1,28 +1,24 @@
 <script lang="ts">
   import { showSettings, sidebarState } from "./stores";
   import Settings from "./Settings.svelte";
-  import { onMount } from "svelte";
   import SvgIcon from "./SvgIcon.svelte";
   import { transitionEffects } from "./util";
 
-  const htmlEl = document.querySelector("html");
   const logoName = "LUTHO";
   const fontLogo = "font-mono font-thin tracking-wider";
   const svgIconClassNames: string = "size-5";
   const svgIconStrokeWidth: number = 1.5;
 
-  let darkMode: boolean = localStorage.getItem("theme") === "dark";
+  let darkMode = true;
 
-  onMount(() => setDataTheme());
+  function handleSwitchDarkMode() {
+    darkMode = !darkMode;
 
-  function setDataTheme() {
-    if (darkMode) {
-      htmlEl?.setAttribute("data-theme", "dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      htmlEl?.setAttribute("data-theme", "light");
-      localStorage.setItem("theme", "light");
-    }
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+
+    darkMode
+      ? document.documentElement.setAttribute("data-theme", "dark")
+      : document.documentElement.setAttribute("data-theme", "light");
   }
 
   function setState() {
@@ -82,10 +78,10 @@
         class="swap swap-rotate hover:bg-primary ml-1 rounded-full p-1 hover:drop-shadow-md"
       >
         <input
-          id="data-toggle-theme"
+          class="theme-controller"
           type="checkbox"
           bind:checked={darkMode}
-          on:change={setDataTheme}
+          on:click={handleSwitchDarkMode}
         />
         <SvgIcon
           classNames={`${svgIconClassNames} swap-on`}
