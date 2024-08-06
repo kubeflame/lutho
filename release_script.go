@@ -18,10 +18,6 @@ var platforms = []string{
 	"linux/amd64",
 	"darwin/arm64",
 	"darwin/amd64",
-	"freebsd/arm64",
-	"freebsd/amd64",
-	"openbsd/arm64",
-	"openbsd/amd64",
 	"windows/arm64",
 	"windows/amd64",
 }
