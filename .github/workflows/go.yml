@@ -9,6 +9,9 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,8 +37,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         if: steps.build.outcome == 'success'
-        permissions:
-          contents: write
 
     # - name: Test
     #   run: go test -v ./...
