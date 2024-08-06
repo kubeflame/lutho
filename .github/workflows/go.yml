@@ -5,37 +5,29 @@ name: Go
 
 on:
   push:
-    tags: [ '[0-9]+.[0-9]+.[0-9]+', '[0-9]+.[0-9]+.[0-9]+-[a-z]+' ]
+    tags: ["[0-9]+.[0-9]+.[0-9]+", "[0-9]+.[0-9]+.[0-9]+-[a-z]+"]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        # cache: yarn
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    # - name: Install dependencies
-    #   run: yarn install
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22"
 
-    # - name: yarn_build
-      # env:
-      #   BASE_PATH: "/${{ github.event.repository.name }}"
-      # run: |
-      #   yarn run build
+      - name: Build
+        run: go run release_script.go build --version ${{ github.ref_name }} --name lutho
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22'
-
-    - name: Build
-      run: go generate ./... && go build -ldflags="-s -w"
+      - name: Release
+        uses: softprops/action-gh-release@v2
 
     # - name: Test
     #   run: go test -v ./...

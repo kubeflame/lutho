@@ -295,10 +295,12 @@ var kubeInClusterConfigFlag = &cli.BoolFlag{
 	Destination: &kubeInClusterConfigFlagValue,
 }
 
+var AppVersion = "0.0.0"
+
 func main() {
 	app := &cli.App{
 		Name:     "lutho",
-		Version:  "v0.1.0",
+		Version:  AppVersion,
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			{
