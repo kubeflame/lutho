@@ -14,20 +14,26 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Node.js
+        id: yarn
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Set up Go
+        id: setup_go
+        if: steps.yarn.outcome == 'success'
         uses: actions/setup-go@v4
         with:
           go-version: "1.22"
 
       - name: Build
+        id: build
+        if: steps.setup_go.outcome == 'success'
         run: go run release_script.go build --version ${{ github.ref_name }} --name lutho
 
       - name: Release
         uses: softprops/action-gh-release@v2
+        if: steps.build.outcome == 'success'
 
     # - name: Test
     #   run: go test -v ./...
