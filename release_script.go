@@ -100,8 +100,13 @@ func main() {
 					},
 				},
 				Action: func(ctx *cli.Context) error {
-
 					tasks := map[string]func() error{}
+
+					err := cmdRun(os.Environ(), "go", "generate", "./...")
+					if err != nil {
+						return err
+					}
+
 					for key, platform := range platforms {
 						splitPlatfrom := strings.Split(platforms[key], "/")
 						b := Build{
