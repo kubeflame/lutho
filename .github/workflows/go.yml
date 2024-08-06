@@ -34,6 +34,8 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         if: steps.build.outcome == 'success'
+        permissions:
+          contents: write
 
     # - name: Test
     #   run: go test -v ./...
