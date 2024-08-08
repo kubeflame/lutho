@@ -1,204 +1,147 @@
 import HomePage from "./routes/HomePage.svelte";
+import KubeNode from "./routes/KubeNode.svelte";
+import KubeNodeList from "./routes/KubeNodeList.svelte";
+import PodList from "./routes/PodList.svelte";
+import Pod from "./routes/Pod.svelte";
+import DeploymentList from "./routes/DeploymentList.svelte";
+import Deployment from "./routes/Deployment.svelte";
+import SecretList from "./routes/SecretList.svelte";
+import Secret from "./routes/Secret.svelte";
+import ConfigMapList from "./routes/ConfigMapList.svelte";
+import ConfigMap from "./routes/ConfigMap.svelte";
+import StatefulSetList from "./routes/StatefulSetList.svelte";
+import StatefulSet from "./routes/StatefulSet.svelte";
+import JobList from "./routes/JobList.svelte";
+import Job from "./routes/Job.svelte";
+import IngressList from "./routes/IngressList.svelte";
+import Ingress from "./routes/Ingress.svelte";
 import NotFound from "./lib/NotFound.svelte";
+import ServiceList from "./routes/ServiceList.svelte";
+import Service from "./routes/Service.svelte";
+import ClusterRole from "./routes/ClusterRole.svelte";
+import ClusterRoleList from "./routes/ClusterRoleList.svelte";
+import ClusterRoleBinding from "./routes/ClusterRoleBinding.svelte";
+import ClusterRoleBindingList from "./routes/ClusterRoleBindingList.svelte";
+import Role from "./routes/Role.svelte";
+import RoleList from "./routes/RoleList.svelte";
+import RoleBinding from "./routes/RoleBinding.svelte";
+import RoleBindingList from "./routes/RoleBindingList.svelte";
+import CronJob from "./routes/CronJob.svelte";
+import CronJobList from "./routes/CronJobList.svelte";
+import DaemonSet from "./routes/DaemonSet.svelte";
+import DaemonSetList from "./routes/DaemonSetList.svelte";
+import EventList from "./routes/EventList.svelte";
+import IngressClass from "./routes/IngressClass.svelte";
+import IngressClassList from "./routes/IngressClassList.svelte";
+import Namespace from "./routes/Namespace.svelte";
+import NamespaceList from "./routes/NamespaceList.svelte";
+import NetworkPolicy from "./routes/NetworkPolicy.svelte";
+import NetworkPolicyList from "./routes/NetworkPolicyList.svelte";
+import PersistentVolume from "./routes/PersistentVolume.svelte";
+import PersistentVolumeList from "./routes/PersistentVolumeList.svelte";
+import PersistentVolumeClaim from "./routes/PersistentVolumeClaim.svelte";
+import PersistentVolumeClaimList from "./routes/PersistentVolumeClaimList.svelte";
+import ReplicationController from "./routes/ReplicationController.svelte";
+import ReplicationControllerList from "./routes/ReplicationControllerList.svelte";
+import ServiceAccount from "./routes/ServiceAccount.svelte";
+import ServiceAccountList from "./routes/ServiceAccountList.svelte";
+import StorageClass from "./routes/StorageClass.svelte";
+import StorageClassList from "./routes/StorageClassList.svelte";
+import Event from "./routes/Event.svelte";
+import ReplicaSetList from "./routes/ReplicaSetList.svelte";
+import ReplicaSet from "./routes/ReplicaSet.svelte";
+import HelmHome from "./routes/helm/HelmHome.svelte";
+import ListReleases from "./routes/helm/ListReleases.svelte";
+import ViewRelease from "./routes/helm/ViewRelease.svelte";
+import ListRepos from "./routes/helm/ListRepos.svelte";
+import ViewRepo from "./routes/helm/ViewRepo.svelte";
 import AuthPage from "./lib/AuthPage.svelte";
-
-import { wrap } from "svelte-spa-router/wrap";
 
 export default {
   "/": HomePage,
 
   "/auth": AuthPage,
 
-  "/nodes": wrap({
-    asyncComponent: () => import("./routes/KubeNodeList.svelte"),
-  }),
-  "/nodes/:name": wrap({
-    asyncComponent: () => import("./routes/KubeNode.svelte"),
-  }),
+  "/nodes": KubeNodeList,
+  "/nodes/:name": KubeNode,
 
-  "/pods": wrap({
-    asyncComponent: () => import("./routes/PodList.svelte"),
-  }),
-  "/pods/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Pod.svelte"),
-  }),
+  "/pods": PodList,
+  "/pods/:namespace/:name": Pod,
 
-  "/deployments": wrap({
-    asyncComponent: () => import("./routes/DeploymentList.svelte"),
-  }),
-  "/deployments/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Deployment.svelte"),
-  }),
+  "/deployments": DeploymentList,
+  "/deployments/:namespace/:name": Deployment,
 
-  "/services": wrap({
-    asyncComponent: () => import("./routes/ServiceList.svelte"),
-  }),
-  "/services/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Service.svelte"),
-  }),
+  "/services": ServiceList,
+  "/services/:namespace/:name": Service,
 
-  "/secrets": wrap({
-    asyncComponent: () => import("./routes/SecretList.svelte"),
-  }),
-  "/secrets/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Secret.svelte"),
-  }),
+  "/secrets": SecretList,
+  "/secrets/:namespace/:name": Secret,
 
-  "/configmaps": wrap({
-    asyncComponent: () => import("./routes/ConfigMapList.svelte"),
-  }),
-  "/configmaps/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/ConfigMap.svelte"),
-  }),
+  "/configmaps": ConfigMapList,
+  "/configmaps/:namespace/:name": ConfigMap,
 
-  "/statefulsets": wrap({
-    asyncComponent: () => import("./routes/StatefulSetList.svelte"),
-  }),
-  "/statefulsets/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/StatefulSet.svelte"),
-  }),
+  "/statefulsets": StatefulSetList,
+  "/statefulsets/:namespace/:name": StatefulSet,
 
-  "/jobs": wrap({
-    asyncComponent: () => import("./routes/JobList.svelte"),
-  }),
-  "/jobs/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Job.svelte"),
-  }),
+  "/jobs": JobList,
+  "/jobs/:namespace/:name": Job,
 
-  "/ingresses": wrap({
-    asyncComponent: () => import("./routes/IngressList.svelte"),
-  }),
-  "/ingresses/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Ingress.svelte"),
-  }),
+  "/ingresses": IngressList,
+  "/ingresses/:namespace/:name": Ingress,
 
-  "/clusterroles": wrap({
-    asyncComponent: () => import("./routes/ClusterRoleList.svelte"),
-  }),
-  "/clusterroles/:name": wrap({
-    asyncComponent: () => import("./routes/ClusterRole.svelte"),
-  }),
+  "/clusterroles": ClusterRoleList,
+  "/clusterroles/:name": ClusterRole,
 
-  "/clusterrolebindings": wrap({
-    asyncComponent: () => import("./routes/ClusterRoleBindingList.svelte"),
-  }),
-  "/clusterrolebindings/:name": wrap({
-    asyncComponent: () => import("./routes/ClusterRoleBinding.svelte"),
-  }),
+  "/clusterrolebindings": ClusterRoleBindingList,
+  "/clusterrolebindings/:name": ClusterRoleBinding,
 
-  "/roles": wrap({
-    asyncComponent: () => import("./routes/RoleList.svelte"),
-  }),
-  "/roles/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Role.svelte"),
-  }),
+  "/roles": RoleList,
+  "/roles/:namespace/:name": Role,
 
-  "/rolebindings": wrap({
-    asyncComponent: () => import("./routes/RoleBindingList.svelte"),
-  }),
-  "/rolebindings/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/RoleBinding.svelte"),
-  }),
+  "/rolebindings": RoleBindingList,
+  "/rolebindings/:namespace/:name": RoleBinding,
 
-  "/cronjobs": wrap({
-    asyncComponent: () => import("./routes/CronJobList.svelte"),
-  }),
-  "/cronjobs/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/CronJob.svelte"),
-  }),
+  "/cronjobs": CronJobList,
+  "/cronjobs/:namespace/:name": CronJob,
 
-  "/daemonsets": wrap({
-    asyncComponent: () => import("./routes/DaemonSetList.svelte"),
-  }),
-  "/daemonsets/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/DaemonSet.svelte"),
-  }),
+  "/daemonsets": DaemonSetList,
+  "/daemonsets/:namespace/:name": DaemonSet,
 
-  "/replicasets": wrap({
-    asyncComponent: () => import("./routes/ReplicaSetList.svelte"),
-  }),
-  "/replicasets/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/ReplicaSet.svelte"),
-  }),
+  "/replicasets": ReplicaSetList,
+  "/replicasets/:namespace/:name": ReplicaSet,
 
-  "/events": wrap({
-    asyncComponent: () => import("./routes/EventList.svelte"),
-  }),
-  "/events/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/Event.svelte"),
-  }),
+  "/events": EventList,
+  "/events/:namespace/:name": Event,
 
-  "/ingressclasses": wrap({
-    asyncComponent: () => import("./routes/IngressClassList.svelte"),
-  }),
-  "/ingressclasses/:name": wrap({
-    asyncComponent: () => import("./routes/IngressClass.svelte"),
-  }),
+  "/ingressclasses": IngressClassList,
+  "/ingressclasses/:name": IngressClass,
 
-  "/namespaces": wrap({
-    asyncComponent: () => import("./routes/NamespaceList.svelte"),
-  }),
-  "/namespaces/:name": wrap({
-    asyncComponent: () => import("./routes/Namespace.svelte"),
-  }),
+  "/namespaces": NamespaceList,
+  "/namespaces/:name": Namespace,
 
-  "/networkpolicies": wrap({
-    asyncComponent: () => import("./routes/NetworkPolicyList.svelte"),
-  }),
-  "/networkpolicies/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/NetworkPolicy.svelte"),
-  }),
+  "/networkpolicies": NetworkPolicyList,
+  "/networkpolicies/:namespace/:name": NetworkPolicy,
 
-  "/persistentvolumes": wrap({
-    asyncComponent: () => import("./routes/PersistentVolumeList.svelte"),
-  }),
-  "/persistentvolumes/:name": wrap({
-    asyncComponent: () => import("./routes/PersistentVolume.svelte"),
-  }),
+  "/persistentvolumes": PersistentVolumeList,
+  "/persistentvolumes/:name": PersistentVolume,
 
-  "/persistentvolumeclaims": wrap({
-    asyncComponent: () => import("./routes/PersistentVolumeClaimList.svelte"),
-  }),
-  "/persistentvolumeclaims/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/PersistentVolumeClaim.svelte"),
-  }),
+  "/persistentvolumeclaims": PersistentVolumeClaimList,
+  "/persistentvolumeclaims/:namespace/:name": PersistentVolumeClaim,
 
-  "/replicationcontrollers": wrap({
-    asyncComponent: () => import("./routes/ReplicationControllerList.svelte"),
-  }),
-  "/replicationcontrollesr/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/ReplicationController.svelte"),
-  }),
+  "/replicationcontrollers": ReplicationControllerList,
+  "/replicationcontrollesr/:namespace/:name": ReplicationController,
 
-  "/serviceaccounts": wrap({
-    asyncComponent: () => import("./routes/ServiceAccountList.svelte"),
-  }),
-  "/serviceaccounts/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/ServiceAccount.svelte"),
-  }),
+  "/serviceaccounts": ServiceAccountList,
+  "/serviceaccounts/:namespace/:name": ServiceAccount,
 
-  "/storageclasses": wrap({
-    asyncComponent: () => import("./routes/StorageClassList.svelte"),
-  }),
-  "/storageclasses/:name": wrap({
-    asyncComponent: () => import("./routes/StorageClass.svelte"),
-  }),
+  "/storageclasses": StorageClassList,
+  "/storageclasses/:name": StorageClass,
 
-  "/helm": wrap({
-    asyncComponent: () => import("./routes/helm/HelmHome.svelte"),
-  }),
-  "/helm/list": wrap({
-    asyncComponent: () => import("./routes/helm/ListReleases.svelte"),
-  }),
-  "/helm/releases/:namespace/:name": wrap({
-    asyncComponent: () => import("./routes/helm/ViewRelease.svelte"),
-  }),
-  "/helm/repository": wrap({
-    asyncComponent: () => import("./routes/helm/ListRepos.svelte"),
-  }),
-  "/helm/repository/:name": wrap({
-    asyncComponent: () => import("./routes/helm/ViewRepo.svelte"),
-  }),
+  "/helm": HelmHome,
+  "/helm/list": ListReleases,
+  "/helm/releases/:namespace/:name": ViewRelease,
+  "/helm/repository": ListRepos,
+  "/helm/repository/:name": ViewRepo,
 
   "*": NotFound,
 };
