@@ -299,9 +299,11 @@ var AppVersion = "0.0.0"
 
 func main() {
 	app := &cli.App{
-		Name:     "lutho",
-		Version:  AppVersion,
-		Compiled: time.Now(),
+		HideHelpCommand: true,
+		Name:            "lutho",
+		Usage:           "Manage Kubernetes based resources in a different way",
+		Version:         AppVersion,
+		Compiled:        time.Now(),
 		Authors: []*cli.Author{
 			{
 				Name:  "KubeFlame",
@@ -309,31 +311,31 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
-			{
-				Name:        "config",
-				Usage:       "manage the configuration",
-				Description: "",
-				Subcommands: []*cli.Command{
-					{
-						Name: "get",
-						Action: func(ctx *cli.Context) error {
-							return nil
-						},
-					},
-					{
-						Name: "set",
-						Action: func(ctx *cli.Context) error {
-							return nil
-						},
-					},
-					{
-						Name: "list",
-						Action: func(ctx *cli.Context) error {
-							return nil
-						},
-					},
-				},
-			},
+			// {
+			// 	Name:        "config",
+			// 	Usage:       "manage the configuration",
+			// 	Description: "",
+			// 	Subcommands: []*cli.Command{
+			// 		{
+			// 			Name: "get",
+			// 			Action: func(ctx *cli.Context) error {
+			// 				return nil
+			// 			},
+			// 		},
+			// 		{
+			// 			Name: "set",
+			// 			Action: func(ctx *cli.Context) error {
+			// 				return nil
+			// 			},
+			// 		},
+			// 		{
+			// 			Name: "list",
+			// 			Action: func(ctx *cli.Context) error {
+			// 				return nil
+			// 			},
+			// 		},
+			// 	},
+			// },
 			{
 				Name:        "start",
 				Usage:       "Starts the application",

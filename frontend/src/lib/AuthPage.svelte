@@ -1,10 +1,10 @@
 <script lang="ts">
+  import BottomAlert from "./BottomAlert.svelte";
   import HeaderElement from "./HeaderElement.svelte";
-  import { type AuthResponse } from "./types";
+  import { type Alert, type AuthResponse } from "./types";
   import { apiURL, KubeAuthType, routeString, transitionEffects } from "./util";
   import { push, querystring } from "svelte-spa-router";
 
-  let errorMessage: string = "";
   let referrerQueryParam =
     (new URLSearchParams($querystring)
       .get("referrer")
@@ -16,6 +16,7 @@
   let kubeconfigRaw: string = "";
   let masterURL: string = "";
 
+  $: alert = { message: null, type: null } as Alert;
   $: authRequest = {
     type: authType,
     token: accessToken,
@@ -36,15 +37,32 @@
         return resp.json();
       })
       .then((result: AuthResponse) => {
-        errorMessage = result.error;
-        if (!errorMessage) {
+        alert = { message: result.error, type: "error" };
+        if (!alert.message) {
           push(referrerQueryParam);
         }
       })
       .catch((error) => {
-        errorMessage = error;
+        alert = { message: error, type: "error" };
       });
   }
+
+  const authTypeData = [
+    {
+      name: "Access Token",
+      type: KubeAuthType.accessToken,
+    },
+    {
+      name: "Kubeconfig Path",
+      type: KubeAuthType.kubeconfigPath,
+    },
+    {
+      name: "Kubeconfig Raw",
+      type: KubeAuthType.kubeconfigRaw,
+    },
+  ];
+
+  $: console.log(authType);
 </script>
 
 <HeaderElement
@@ -54,91 +72,93 @@
 
 <div
   class="auth bg-base-100 fixed top-10 m-4 flex h-[calc(100%-72px)] w-[calc(100%-32px)]
-    flex-col rounded-md shadow-md {transitionEffects}"
+    content-center justify-center rounded-md shadow-md {transitionEffects}"
 >
-  <div class="join flex h-6 w-full items-center">
-    <label
-      for="authType-select"
-      class="join-item bg-base-300 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
-    >
-      Auth Type
-    </label>
-    <select
-      id="authType-select"
-      bind:value={authType}
-      class="join-item select select-primary select-xs bg-base-100 mt-1 flex h-full rounded-full text-center
-        text-sm font-normal drop-shadow-sm focus:outline-0"
-    >
-      {#each Object.keys(KubeAuthType) as at}
-        <option value={at}>{at}</option>
-      {/each}
-    </select>
-  </div>
-  {#if authType === KubeAuthType.accessToken}
-    <div class="join h-6 w-full items-center">
+  <div class="h-1/2 w-1/2 space-y-2 place-self-center">
+    <div class="join flex h-6 w-full place-items-center items-center">
       <label
-        for="masterURL-input"
-        class="join-item bg-base-300 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+        for="authType-select"
+        class="join-item bg-base-200 flex h-full pl-2 pr-2 text-sm font-normal"
       >
-        Master URL
+        Auth Type
       </label>
-      <input
-        id="masterURL-input"
-        bind:value={masterURL}
-        type="text"
-        class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-          flex grow text-sm focus:outline-0"
-      />
-    </div>
-    <div class="join h-6 w-full items-center">
-      <label
-        for="accessToken-input"
-        class="join-item bg-base-300 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+      <select
+        id="authType-select"
+        bind:value={authType}
+        class="join-item select focus:border-primary/60 border-base-300 bg-base-100 select-xs flex
+          rounded-lg text-center text-sm font-normal drop-shadow-sm focus:outline-0"
+        on:change={() => {
+          alert = { message: null, type: null };
+        }}
       >
-        AccessToken
-      </label>
-      <input
-        id="accessToken-input"
-        bind:value={accessToken}
-        type="password"
-        class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-    flex grow text-sm focus:outline-0"
-      />
+        {#each authTypeData as at}
+          <option value={at.type}>{at.name}</option>
+        {/each}
+      </select>
     </div>
-  {:else if authType === KubeAuthType.kubeconfigPath}
-    <div class="join h-6 w-full items-center">
-      <label
-        for="kubeconfigPath-input"
-        class="join-item bg-base-300 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+    {#if authType === KubeAuthType.accessToken}
+      <div class="join h-6 w-full items-center">
+        <label
+          for="masterURL-input"
+          class="join-item bg-base-200 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+        >
+          Master URL
+        </label>
+        <input
+          id="masterURL-input"
+          bind:value={masterURL}
+          type="text"
+          class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
+            flex grow text-sm focus:outline-0"
+        />
+      </div>
+      <div class="join h-6 w-full items-center">
+        <label
+          for="accessToken-input"
+          class="join-item bg-base-200 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+        >
+          AccessToken
+        </label>
+        <input
+          id="accessToken-input"
+          bind:value={accessToken}
+          type="password"
+          class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
+            flex grow text-sm focus:outline-0"
+        />
+      </div>
+    {:else if authType === KubeAuthType.kubeconfigPath}
+      <div class="join h-6 w-full items-center">
+        <label
+          for="kubeconfigPath-input"
+          class="join-item bg-base-200 h-full p-0.5 pl-2 pr-2 text-sm font-normal"
+        >
+          Kubeconfig Path
+        </label>
+        <input
+          id="kubeconfigPath-input"
+          bind:value={kubeconfigPath}
+          type="text"
+          class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
+            flex grow text-sm focus:outline-0"
+        />
+      </div>
+    {:else if authType === KubeAuthType.kubeconfigRaw}
+      <textarea
+        bind:value={kubeconfigRaw}
+        class="bg-base-200/20 outline-base-200 focus:outline-primary h-full min-w-full resize-none
+          overflow-y-scroll rounded-lg p-2 shadow-md outline outline-1"
+      />
+    {/if}
+
+    <div class="flex w-full content-center items-center justify-center pt-5">
+      <button
+        on:click={onClickAuthButton}
+        class="btn btn-primary btn-sm btn-ghost bg-base-200 hover:bg-primary hover:drop-shadow-md"
       >
-        Kubeconfig Path
-      </label>
-      <input
-        id="kubeconfigPath-input"
-        bind:value={kubeconfigPath}
-        type="text"
-        class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-flex grow text-sm focus:outline-0"
-      />
-    </div>
-  {:else if authType === KubeAuthType.kubeconfigRaw}
-    <textarea
-      bind:value={kubeconfigRaw}
-      class="bg-base-200 outline-base-100 focus:outline-primary h-36 min-w-full resize-none
-        overflow-y-scroll rounded-lg p-2 shadow-md outline outline-1"
-    />
-  {/if}
-  <div
-    class="auth-content hero-content relative h-full flex-col overflow-y-scroll lg:flex-row-reverse"
-  >
-    <div class="text-center lg:text-left">
-      <h1 class="text-5xl font-bold">Login now!</h1>
-      <p class="py-6">
-        {errorMessage}
-      </p>
-      <button on:click={onClickAuthButton} class="btn btn-primary">
         Login
       </button>
+      <BottomAlert {alert} />
     </div>
   </div>
 </div>

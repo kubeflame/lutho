@@ -21,6 +21,18 @@
       : document.documentElement.setAttribute("data-theme", "light");
   }
 
+  if (
+    localStorage.theme === "dark" ||
+    (!("theme" in localStorage) &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches)
+  ) {
+    document.documentElement.setAttribute("data-theme", "dark");
+    darkMode = true;
+  } else {
+    document.documentElement.setAttribute("data-theme", "light");
+    darkMode = false;
+  }
+
   function setState() {
     $sidebarState = $sidebarState === "max" ? "min" : "max";
     localStorage.setItem("navState", $sidebarState);
