@@ -6,6 +6,7 @@
     routeString,
     NetworkPolicyV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1NetworkPolicy } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -37,27 +38,39 @@
     { index: 1, name: params.name },
   ];
 
-  $: networkPolicyData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: NetworkPolicyV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: NetworkPolicyV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      networkPolicyData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    networkPolicyData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      networkPolicyData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

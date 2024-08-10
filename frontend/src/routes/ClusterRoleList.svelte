@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { link } from "svelte-spa-router";
-  import { routeString, ClusterRoleV1GVRK } from "../lib/util";
+  import { routeString, ClusterRoleV1GVRK, randomUUID } from "../lib/util";
   import type { V1ClusterRoleList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,27 +16,24 @@
 
   $: toolbarContent = [{ index: 0, name: "ClusterRole List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        kubeGVRK: ClusterRoleV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      kubeGVRK: ClusterRoleV1GVRK,
     },
-  ];
+  } as any;
 
-  $: clusterRoleListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      clusterRoleListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            kubeGVRK: ClusterRoleV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

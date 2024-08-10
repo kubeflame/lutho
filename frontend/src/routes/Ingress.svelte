@@ -8,6 +8,7 @@
     getLabels,
     EventV1GVRK,
     parseFieldSelector,
+    randomUUID,
   } from "../lib/util";
   import type { V1Ingress } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -38,56 +39,76 @@
   let docStore: any;
   let ingressData: V1Ingress;
   let codeMirrorChanged: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     { index: 0, name: "Ingress List", url: routeString.ingressList },
     { index: 1, name: params.name },
   ];
-  $: ingressData = $dataGet;
-  $: eventListData = $dataList;
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: IngressV1GVRK,
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: IngressV1GVRK,
+    },
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: IngressV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
       },
     },
-  ];
+  } as any;
 
   $: if (tabQueryParam === "events") {
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          name: params.name,
-          kubeGVRK: EventV1GVRK,
-          kubeOptions: {
-            fieldSelector: parseFieldSelector({
-              kind: IngressV1GVRK.kind,
-              name: params.name,
-              namespace: params.namespace,
-            }),
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
   }
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      ingressData = dg.data;
+    }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
 
   dataSend.subscribe((ds) => {
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   dataUpdate.subscribe((du) => {
-    ingressData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      ingressData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

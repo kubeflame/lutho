@@ -1,7 +1,13 @@
 <script lang="ts">
   import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import { tabs, routeString, NamespaceV1GVRK, getLabels } from "../lib/util";
+  import {
+    tabs,
+    routeString,
+    NamespaceV1GVRK,
+    getLabels,
+    randomUUID,
+  } from "../lib/util";
   import type { V1Namespace } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
@@ -28,26 +34,38 @@
     { index: 1, name: params.name },
   ];
 
-  $: namespaceData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: NamespaceV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: NamespaceV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      namespaceData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    namespaceData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      namespaceData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: NamespaceV1GVRK,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import CodeMirror from "../../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml } from "js-yaml";
-  import { EmptyGVRK, routeString, tabs } from "../../lib/util";
+  import { EmptyGVRK, randomUUID, routeString, tabs } from "../../lib/util";
   import {
     type Helm,
     type HelmRepoData,
@@ -45,17 +45,22 @@
   $: chartURL = getRepo(helmRepos, chartName)?.url;
   $: chartVersion = getRepo(helmRepos, chartName)?.latestVersion as string;
   $: chartIsOCI = getRepo(helmRepos, chartName)?.isOCI;
-  $: helmReleaseData = $dataGet;
-  $: $dataSend = [
-    {
-      type: "helmGet",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: EmptyGVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "helmGet",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: EmptyGVRK,
     },
-  ];
+  } as any;
+  $: $dataSend = [sendGet];
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      helmReleaseData = dg.data;
+    }
+  });
 
   function getRepo(repoData: HelmRepoData[], name: string): HelmRepoData {
     if (repoData) {

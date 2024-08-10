@@ -11,6 +11,7 @@
   } from "../../lib/types";
   import SvgIcon from "../../lib/SvgIcon.svelte";
   import DialogElement from "../../lib/DialogElement.svelte";
+  import { randomUUID } from "../../lib/util";
 
   export let tabQueryParam: TabQueryParam;
 
@@ -23,11 +24,21 @@
     JSON.parse(localStorage.getItem("helmRepos") as string) ?? [];
   let allVersions: string[] = [];
   let showDialog: boolean = false;
+  let helmShowValues: any;
 
   $: allVersions = (chartRepo?.allVersions as string[]) || [
     chartRepo?.latestVersion,
   ];
-  $: helmShowValues = $showGet;
+
+  $: sendInstall = {
+    opID: randomUUID(),
+    type: "helmInstall",
+  } as any;
+
+  $: sendShow = {
+    opID: randomUUID(),
+    type: "helmShowValues",
+  } as any;
 
   const {
     sockError: installError,
@@ -45,18 +56,26 @@
     dataGet: showGet,
   } = socketStore();
 
+  showGet.subscribe((sg) => {
+    if (sg && sg.op?.opID === sendShow.opID) {
+      helmShowValues = sg.data;
+    }
+  });
+
   function onShowValues() {
     if ($showState.state === WebSocket.CLOSED) $showState.refresh = true;
 
+    helmShowValues = "";
+
     $showSend = [
       {
-        type: "helmShowValues",
+        ...sendShow,
         request: {
           helmOptions: {
-            chartName: chartRepo.name,
+            chartName: chartRepo?.name,
             chartVersion: chartVersion,
-            isOCI: chartRepo.isOCI,
-            repoURL: chartRepo.url,
+            isOCI: chartRepo?.isOCI,
+            repoURL: chartRepo?.url,
           },
         },
       },
@@ -68,15 +87,15 @@
 
     $installSend = [
       {
-        type: "helmInstall",
+        ...sendInstall,
         request: {
           namespace: releaseNamespace,
           name: releaseName,
           helmOptions: {
-            chartName: chartRepo.name,
+            chartName: chartRepo?.name,
             chartVersion: chartVersion,
-            isOCI: chartRepo.isOCI,
-            repoURL: chartRepo.url,
+            isOCI: chartRepo?.isOCI,
+            repoURL: chartRepo?.url,
           },
           data: $docStore,
         },

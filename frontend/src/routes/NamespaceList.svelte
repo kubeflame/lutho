@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { routeString, NamespaceV1GVRK } from "../lib/util";
+  import { routeString, NamespaceV1GVRK, randomUUID } from "../lib/util";
   import type { V1NamespaceList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -16,27 +16,24 @@
 
   $: toolbarContent = [{ index: 0, name: "Namespace List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        kubeGVRK: NamespaceV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      kubeGVRK: NamespaceV1GVRK,
     },
-  ];
+  } as any;
 
-  $: namespaceListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      namespaceListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            kubeGVRK: NamespaceV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

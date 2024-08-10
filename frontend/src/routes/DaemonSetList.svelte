@@ -1,6 +1,6 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { DaemonSetV1GVRK, routeString } from "../lib/util";
+  import { DaemonSetV1GVRK, randomUUID, routeString } from "../lib/util";
   import type { V1DaemonSetList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "DaemonSet List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: DaemonSetV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: DaemonSetV1GVRK,
     },
-  ];
+  } as any;
 
-  $: daemonSetListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      daemonSetListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: DaemonSetV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { RoleBindingV1GVRK, routeString } from "../lib/util";
+  import { randomUUID, RoleBindingV1GVRK, routeString } from "../lib/util";
   import type { V1RoleBindingList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "RoleBinding List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: RoleBindingV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: RoleBindingV1GVRK,
     },
-  ];
+  } as any;
 
-  $: roleBindingListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      roleBindingListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: RoleBindingV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

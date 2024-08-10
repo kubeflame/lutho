@@ -1,6 +1,6 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { routeString, ConfigMapV1GVRK } from "../lib/util";
+  import { routeString, ConfigMapV1GVRK, randomUUID } from "../lib/util";
   import type { V1ConfigMapList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "ConfigMap List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: ConfigMapV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: ConfigMapV1GVRK,
     },
-  ];
+  } as any;
 
-  $: configMapListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      configMapListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: ConfigMapV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

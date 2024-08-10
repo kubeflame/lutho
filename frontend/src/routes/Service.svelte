@@ -1,7 +1,13 @@
 <script lang="ts">
   import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import { tabs, routeString, ServiceV1GVRK, getLabels } from "../lib/util";
+  import {
+    tabs,
+    routeString,
+    ServiceV1GVRK,
+    getLabels,
+    randomUUID,
+  } from "../lib/util";
   import type { V1Service } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
@@ -28,27 +34,39 @@
     { index: 1, name: params.name },
   ];
 
-  $: serviceData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: ServiceV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: ServiceV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      serviceData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    serviceData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      serviceData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

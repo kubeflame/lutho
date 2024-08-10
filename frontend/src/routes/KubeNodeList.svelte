@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { routeString, NodeV1GVRK } from "../lib/util";
+  import { routeString, NodeV1GVRK, randomUUID } from "../lib/util";
   import type { V1NodeCondition, V1NodeList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -25,16 +25,21 @@
 
   $: toolbarContent = [{ index: 0, name: "Node List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        kubeGVRK: NodeV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      kubeGVRK: NodeV1GVRK,
     },
-  ];
+  } as any;
 
-  $: nodeListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      nodeListData = dl.data;
+    }
+  });
 
   // function onDelete(item: any) {
   //   $dataSend = [

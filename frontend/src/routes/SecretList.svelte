@@ -1,6 +1,6 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { routeString, SecretV1GVRK } from "../lib/util";
+  import { randomUUID, routeString, SecretV1GVRK } from "../lib/util";
   import type { V1SecretList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "Secret List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: SecretV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: SecretV1GVRK,
     },
-  ];
+  } as any;
 
-  $: secretListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      secretListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: SecretV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

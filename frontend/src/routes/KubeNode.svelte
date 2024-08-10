@@ -8,9 +8,10 @@
     NodeV1GVRK,
     getLabels,
     parseFieldSelector,
+    randomUUID,
   } from "../lib/util";
   import Events from "../lib/Events.svelte";
-  import type { CoreV1EventList, V1Node } from "@kubernetes/client-node";
+  import type { V1Node } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -37,57 +38,76 @@
   let tabQueryParam: TabQueryParam;
   let docStore: any;
   let nodeData: V1Node;
-  let eventListData: CoreV1EventList;
   let codeMirrorChanged: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     { index: 0, name: "Node List", url: routeString.nodeList },
     { index: 1, name: params.name },
   ];
-  $: nodeData = $dataGet;
-  $: eventListData = $dataList;
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: NodeV1GVRK,
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: NodeV1GVRK,
+    },
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: NodeV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
       },
     },
-  ];
+  } as any;
 
   $: if (tabQueryParam === "events") {
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          name: params.name,
-          kubeGVRK: EventV1GVRK,
-          kubeOptions: {
-            fieldSelector: parseFieldSelector({
-              kind: NodeV1GVRK.kind,
-              name: params.name,
-              namespace: params.namespace,
-            }),
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
   }
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      nodeData = dg.data;
+    }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
 
   dataSend.subscribe((ds) => {
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   dataUpdate.subscribe((du) => {
-    nodeData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      nodeData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: NodeV1GVRK,

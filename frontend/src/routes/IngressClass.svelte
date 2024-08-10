@@ -6,6 +6,7 @@
     routeString,
     IngressClassV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1IngressClass } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -33,33 +34,41 @@
     { index: 1, name: params.name },
   ];
 
-  $: ingressClassData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: IngressClassV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: IngressClassV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+    request: {
+      name: params.name,
+      kubeGVRK: IngressClassV1GVRK,
+      data: JSON.stringify(fromYaml($docStore)),
+    },
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      ingressClassData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    ingressClassData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      ingressClassData = du.data;
+    }
   });
 
   function update() {
-    $dataSend = [
-      {
-        type: "update",
-        request: {
-          name: params.name,
-          kubeGVRK: IngressClassV1GVRK,
-          data: JSON.stringify(fromYaml($docStore)),
-        },
-      },
-    ];
+    $dataSend = [sendUpdate];
   }
 </script>
 

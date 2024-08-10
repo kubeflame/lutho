@@ -3,7 +3,7 @@
   import ResourceToolbarBreadcrumbs from "../../lib/ResourceToolbarBreadcrumbs.svelte";
   import RouterPage from "../../lib/RouterPage.svelte";
   import EmbeddedOptions from "../../lib/tables/EmbeddedOptions.svelte";
-  import { EmptyGVRK, routeString } from "../../lib/util";
+  import { EmptyGVRK, randomUUID, routeString } from "../../lib/util";
   import type {
     Alert,
     HelmChartTags,
@@ -46,6 +46,24 @@
   $: toolbarContent = [{ index: 0, name: "Helm Repository" }];
   $: helmRepos = JSON.parse(localStorage.getItem("helmRepos") as string) ?? [];
 
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "helmGetTags",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID && helmRepos) {
+      const repoIndex = helmRepos.findIndex((r) => {
+        return r.name === dg.data.chartName;
+      });
+
+      helmRepos[repoIndex].latestVersion = dg.data.chartTags[0];
+      helmRepos[repoIndex].allVersions = dg.data.chartTags;
+      localStorage.setItem("helmRepos", JSON.stringify(helmRepos));
+      $updatingRepos[helmRepos[repoIndex].name] = false;
+    }
+  });
+
   async function newRepo(name: string) {
     let findRepoName: string = "";
 
@@ -82,9 +100,8 @@
     } else {
       $dataSend = [
         {
-          type: "helmGetTags",
+          ...sendGet,
           request: {
-            kubeGVRK: EmptyGVRK,
             helmOptions: {
               chartName: name,
               repoURL: repoURL,
@@ -117,9 +134,8 @@
       $updatingRepos[r.name] = true;
       $dataSend = [
         {
-          type: "helmGetTags",
+          ...sendGet,
           request: {
-            kubeGVRK: EmptyGVRK,
             helmOptions: {
               chartName: r.name,
               repoURL: r.url,
@@ -130,19 +146,6 @@
       ];
     });
   }
-
-  dataGet.subscribe((d: HelmChartTags) => {
-    if (d && helmRepos) {
-      const repoIndex = helmRepos.findIndex((r) => {
-        return r.name === d.chartName;
-      });
-
-      helmRepos[repoIndex].latestVersion = d.chartTags[0];
-      helmRepos[repoIndex].allVersions = d.chartTags;
-      localStorage.setItem("helmRepos", JSON.stringify(helmRepos));
-      $updatingRepos[helmRepos[repoIndex].name] = false;
-    }
-  });
 
   function deleteRepo(repoName: string) {
     helmRepos = helmRepos.filter((repo: HelmRepoData) => {
@@ -341,7 +344,7 @@
 
                       $dataSend = [
                         {
-                          type: "helmGetTags",
+                          ...sendGet,
                           request: {
                             kubeGVRK: EmptyGVRK,
                             helmOptions: {

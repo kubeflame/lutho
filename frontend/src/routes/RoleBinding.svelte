@@ -1,7 +1,13 @@
 <script lang="ts">
   import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import { tabs, routeString, RoleBindingV1GVRK, getLabels } from "../lib/util";
+  import {
+    tabs,
+    routeString,
+    RoleBindingV1GVRK,
+    getLabels,
+    randomUUID,
+  } from "../lib/util";
   import type { V1RoleBinding } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
@@ -28,27 +34,39 @@
     { index: 1, name: params.name },
   ];
 
-  $: roleBindingData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: RoleBindingV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: RoleBindingV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      roleBindingData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    roleBindingData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      roleBindingData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

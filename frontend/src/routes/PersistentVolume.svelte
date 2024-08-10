@@ -8,6 +8,7 @@
     getLabels,
     EventV1GVRK,
     parseFieldSelector,
+    randomUUID,
   } from "../lib/util";
   import type { V1PersistentVolume } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -38,6 +39,7 @@
   let store: any;
   let persistentVolumeData: V1PersistentVolume;
   let codeMirrorChanged: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     {
@@ -47,50 +49,68 @@
     },
     { index: 1, name: params.name },
   ];
-  $: persistentVolumeData = $dataGet;
-  $: eventListData = $dataList;
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: PersistentVolumeV1GVRK,
+    },
+  } as any;
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: PersistentVolumeV1GVRK,
+  $: $dataSend = [sendGet];
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: PersistentVolumeV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
       },
     },
-  ];
+  } as any;
 
   $: if (tabQueryParam === "events") {
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          name: params.name,
-          kubeGVRK: EventV1GVRK,
-          kubeOptions: {
-            fieldSelector: parseFieldSelector({
-              kind: PersistentVolumeV1GVRK.kind,
-              name: params.name,
-              namespace: params.namespace,
-            }),
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
   }
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      persistentVolumeData = dg.data;
+    }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
 
   dataSend.subscribe((ds) => {
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   dataUpdate.subscribe((du) => {
-    persistentVolumeData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      persistentVolumeData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: PersistentVolumeV1GVRK,

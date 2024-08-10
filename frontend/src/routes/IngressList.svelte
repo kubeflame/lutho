@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { link } from "svelte-spa-router";
   import { namespace } from "../lib/stores";
-  import { routeString, IngressV1GVRK } from "../lib/util";
+  import { routeString, IngressV1GVRK, randomUUID } from "../lib/util";
   import type { V1IngressList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -18,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "Ingress List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: IngressV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: IngressV1GVRK,
     },
-  ];
+  } as any;
 
-  $: ingressListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      ingressListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: IngressV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

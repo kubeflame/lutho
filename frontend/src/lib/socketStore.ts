@@ -70,37 +70,70 @@ function sockConnection(
     } else if (resp.op.type === "bind") {
       sockState.set({ state: sock.readyState, bound: true });
     } else if (resp.op.type === "list") {
-      dataList.set(JSON.parse(resp.data));
+      dataList.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "listAll") {
-      dataList.set(JSON.parse(resp.data));
+      dataList.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmShowValues") {
-      dataGet.set(resp.data);
+      dataGet.set({
+        op: resp.op,
+        data: resp.data,
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmList") {
-      dataList.set(JSON.parse(resp.data));
+      dataList.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "get") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmGet") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmInstall") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmUpgrade") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmPull") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "helmGetTags") {
-      dataGet.set(JSON.parse(resp.data));
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "update") {
-      dataUpdate.set(JSON.parse(resp.data));
+      dataUpdate.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
       isLoading.set(false);
     } else if (resp.op.type === "delete") {
       dataDelete.set(resp.error);
@@ -178,14 +211,14 @@ export default function createSocketStore() {
         s.refresh = false;
       } else if (s.state === WebSocket.OPEN && s.bound && data) {
         isLoading.set(true);
-        data.forEach((item) =>
+        data.forEach((item) => {
           sock.send(
             JSON.stringify({
               op: item,
               sessionId: get(sessionId),
             }),
-          ),
-        );
+          );
+        });
       }
     });
   });

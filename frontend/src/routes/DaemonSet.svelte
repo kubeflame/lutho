@@ -8,6 +8,7 @@
     getLabels,
     EventV1GVRK,
     parseFieldSelector,
+    randomUUID,
   } from "../lib/util";
   import type { V1DaemonSet } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -39,56 +40,76 @@
   let docStore: any;
   let daemonSetData: V1DaemonSet;
   let codeMirrorChanged: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     { index: 0, name: "DaemonSet List", url: routeString.daemonSetList },
     { index: 1, name: params.name },
   ];
-  $: daemonSetData = $dataGet;
-  $: eventListData = $dataList;
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: DaemonSetV1GVRK,
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: DaemonSetV1GVRK,
+    },
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: DaemonSetV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
       },
     },
-  ];
+  } as any;
 
   $: if (tabQueryParam === "events") {
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          name: params.name,
-          kubeGVRK: EventV1GVRK,
-          kubeOptions: {
-            fieldSelector: parseFieldSelector({
-              kind: DaemonSetV1GVRK.kind,
-              name: params.name,
-              namespace: params.namespace,
-            }),
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
   }
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      daemonSetData = dg.data;
+    }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
 
   dataSend.subscribe((ds) => {
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   dataUpdate.subscribe((du) => {
-    daemonSetData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      daemonSetData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

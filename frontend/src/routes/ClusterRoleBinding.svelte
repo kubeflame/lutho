@@ -6,6 +6,7 @@
     routeString,
     ClusterRoleBindingV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1ClusterRoleBinding } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -37,26 +38,38 @@
     { index: 1, name: params.name },
   ];
 
-  $: clusterRoleBindingData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: ClusterRoleBindingV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: ClusterRoleBindingV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      clusterRoleBindingData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    clusterRoleBindingData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      clusterRoleBindingData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: ClusterRoleBindingV1GVRK,

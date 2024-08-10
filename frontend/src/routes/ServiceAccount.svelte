@@ -6,6 +6,7 @@
     routeString,
     ServiceAccountV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1ServiceAccount } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -38,27 +39,39 @@
     { index: 1, name: params.name },
   ];
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: ServiceAccountV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: ServiceAccountV1GVRK,
     },
-  ];
+  } as any;
 
-  $: serviceAccountData = $dataGet;
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      serviceAccountData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    serviceAccountData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      serviceAccountData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

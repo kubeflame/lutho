@@ -1,7 +1,13 @@
 <script lang="ts">
   import CodeMirror from "../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml, load as fromYaml } from "js-yaml";
-  import { tabs, routeString, ClusterRoleV1GVRK, getLabels } from "../lib/util";
+  import {
+    tabs,
+    routeString,
+    ClusterRoleV1GVRK,
+    getLabels,
+    randomUUID,
+  } from "../lib/util";
   import type { V1ClusterRole } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import Tabs from "../lib/Tabs.svelte";
@@ -32,26 +38,38 @@
     { index: 1, name: params.name },
   ];
 
-  $: clusterRoleData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: ClusterRoleV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: ClusterRoleV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      clusterRoleData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    clusterRoleData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      clusterRoleData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: ClusterRoleV1GVRK,

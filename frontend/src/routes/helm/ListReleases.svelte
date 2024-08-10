@@ -1,7 +1,7 @@
 <script lang="ts">
   import { link } from "svelte-spa-router";
   import { namespace } from "../../lib/stores";
-  import { EmptyGVRK, routeString } from "../../lib/util";
+  import { EmptyGVRK, randomUUID, routeString } from "../../lib/util";
   import { type Helm } from "../../lib/types";
   import ResourceToolbar from "../../lib/ResourceToolbar.svelte";
   import socketStore from "../../lib/socketStore";
@@ -17,29 +17,25 @@
 
   $: toolbarContent = [{ index: 0, name: "Helm List" }];
 
-  $: $dataSend = [
-    {
-      type: "helmList",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: EmptyGVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "helmList",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: EmptyGVRK,
     },
-  ];
+  } as any;
 
-  $: helmReleaseListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      helmReleaseListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "helmList",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: EmptyGVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(release: Helm.Release) {

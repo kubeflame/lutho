@@ -1,6 +1,10 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { routeString, ReplicationControllerV1GVRK } from "../lib/util";
+  import {
+    routeString,
+    ReplicationControllerV1GVRK,
+    randomUUID,
+  } from "../lib/util";
   import type { V1ReplicationControllerList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,29 +21,25 @@
 
   $: toolbarContent = [{ index: 0, name: "ReplicationController List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: ReplicationControllerV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: ReplicationControllerV1GVRK,
     },
-  ];
+  } as any;
 
-  $: replicationControllerListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      replicationControllerListData = dl.data;
+    }
+  });
 
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: ReplicationControllerV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

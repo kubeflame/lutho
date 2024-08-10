@@ -6,6 +6,7 @@
     routeString,
     ReplicationControllerV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1ReplicationController } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -38,27 +39,39 @@
     { index: 1, name: params.name },
   ];
 
-  $: replicationControllerData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: ReplicationControllerV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: ReplicationControllerV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      replicationControllerData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    replicationControllerData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      replicationControllerData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

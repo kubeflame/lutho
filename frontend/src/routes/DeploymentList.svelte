@@ -1,6 +1,6 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { routeString, DeploymentV1GVRK } from "../lib/util";
+  import { routeString, DeploymentV1GVRK, randomUUID } from "../lib/util";
   import type { V1DeploymentList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -17,17 +17,26 @@
 
   $: toolbarContent = [{ index: 0, name: "Deployment List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: DeploymentV1GVRK,
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: DeploymentV1GVRK,
     },
-  ];
+  } as any;
 
-  $: deployListData = $dataList;
+  $: $dataSend = [sendList];
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      deployListData = dl.data;
+    }
+  });
+
+  dataDelete.subscribe((err) => {
+    if (!err) $dataSend = [sendList];
+  });
 
   function onDelete(item: any) {
     $dataSend = [

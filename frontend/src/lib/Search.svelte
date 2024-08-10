@@ -24,6 +24,7 @@
     PersistentVolumeClaimV1GVRK,
     PersistentVolumeV1GVRK,
     PodV1GVRK,
+    randomUUID,
     ReplicaSetV1GVRK,
     ReplicationControllerV1GVRK,
     RoleBindingV1GVRK,
@@ -83,26 +84,32 @@
     }
   });
 
-  $: searchDataResponse = $dataList;
+  dataList.subscribe((dl) => {
+    if (dl && dl.op.opID === sendList?.opID) {
+      searchDataResponse = dl.data;
+    }
+  });
+
   $: if (!showFilter) (labelInput = ""), (fieldInput = "");
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: resourceType?.isNamespaced ? namespaceInput : "",
+      kubeGVRK: resourceType,
+      kubeOptions: {
+        fieldSelector: nameInput
+          ? fieldInput.concat(",", `metadata.name=${nameInput}`)
+          : fieldInput,
+        labelSelector: labelInput,
+      },
+    },
+  } as any;
 
   function onSearch() {
     isNamespaced = false;
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          namespace: resourceType?.isNamespaced ? namespaceInput : "",
-          kubeGVRK: resourceType,
-          kubeOptions: {
-            fieldSelector: nameInput
-              ? fieldInput.concat(",", `metadata.name=${nameInput}`)
-              : fieldInput,
-            labelSelector: labelInput,
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
     if (resourceType.isNamespaced) isNamespaced = true;
   }
 </script>

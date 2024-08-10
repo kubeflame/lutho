@@ -9,6 +9,7 @@
     PodV1GVRK,
     getLabels,
     parseFieldSelector,
+    randomUUID,
   } from "../lib/util";
   import { type EmbeddedTableItem, type TabQueryParam } from "../lib/types";
   import Events from "../lib/Events.svelte";
@@ -52,57 +53,76 @@
   let followLogs: boolean;
   let onChangeLogsBtn: Writable<Event>;
   let podData: V1Pod;
-  let eventListData: CoreV1EventList;
   let tabQueryParam: TabQueryParam;
   let activeContainer: Writable<string>;
   let showShellReconnect: Writable<boolean>;
   let reconnectShell: boolean;
   let codeMirrorChanged: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     { index: 0, name: "Pod List", url: routeString.podList },
     { index: 1, name: params.name },
   ];
-  $: podData = $dataGet;
-  $: eventListData = $dataList;
   $: containers = getContainers(podData?.spec?.containers ?? []);
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: PodV1GVRK,
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: PodV1GVRK,
+    },
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: PodV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
       },
     },
-  ];
+  } as any;
 
   $: if (tabQueryParam === "events") {
-    $dataSend = [
-      {
-        type: "list",
-        request: {
-          name: params.name,
-          kubeGVRK: EventV1GVRK,
-          kubeOptions: {
-            fieldSelector: parseFieldSelector({
-              kind: PodV1GVRK.kind,
-              name: params.name,
-              namespace: params.namespace,
-            }),
-          },
-        },
-      },
-    ];
+    $dataSend = [sendList];
   }
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      podData = dg.data;
+    }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
 
   dataSend.subscribe((ds) => {
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   dataUpdate.subscribe((du) => {
-    podData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      podData = du.data;
+    }
   });
 
   function getContainers(containers: V1Container[]): string[] {
@@ -124,7 +144,7 @@
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

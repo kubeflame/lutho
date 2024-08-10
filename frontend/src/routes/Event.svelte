@@ -6,6 +6,7 @@
     routeString,
     EventV1GVRK,
     jsonStringClassName,
+    randomUUID,
   } from "../lib/util";
   import type { CoreV1Event } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -33,27 +34,39 @@
     { index: 1, name: params.name },
   ];
 
-  $: eventData = $dataGet;
-
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        namespace: params.namespace,
-        name: params.name,
-        kubeGVRK: EventV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      namespace: params.namespace,
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
     },
-  ];
+  } as any;
+
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      eventData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    eventData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      eventData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           namespace: params.namespace,
           name: params.name,

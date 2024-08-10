@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EmptyGVRK, routeString, tabs } from "../../lib/util";
+  import { EmptyGVRK, randomUUID, routeString, tabs } from "../../lib/util";
   import HeaderElement from "../../lib/HeaderElement.svelte";
   import Tabs from "../../lib/Tabs.svelte";
   import RouterPage from "../../lib/RouterPage.svelte";
@@ -19,8 +19,7 @@
   let error: string = "";
   let loading: boolean = false;
   let repoInput: string = "";
-
-  $: repoChartData = $dataGet;
+  let repoChartData: any;
 
   $: toolbarContent = [
     {
@@ -31,21 +30,28 @@
     { index: 1, name: params.name },
   ];
 
-  function btnSend() {
-    $dataSend = [
-      {
-        type: "helmPull",
-        request: {
-          kubeGVRK: EmptyGVRK,
-          helmOptions: {
-            chartName: "kubernetes-dashboard",
-            chartVersion: "6.0.7",
-            envPath: repoInput,
-            repoURL: "https://kubernetes.github.io/dashboard",
-          },
-        },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "helmPull",
+    request: {
+      kubeGVRK: EmptyGVRK,
+      helmOptions: {
+        chartName: "kubernetes-dashboard",
+        chartVersion: "6.0.7",
+        envPath: repoInput,
+        repoURL: "https://kubernetes.github.io/dashboard",
       },
-    ];
+    },
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      repoChartData = dg.data;
+    }
+  });
+
+  function btnSend() {
+    $dataSend = [sendGet];
   }
 </script>
 

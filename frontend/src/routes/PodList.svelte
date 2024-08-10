@@ -1,6 +1,11 @@
 <script lang="ts">
   import { namespace } from "../lib/stores";
-  import { PodV1GVRK, getContainers, routeString } from "../lib/util";
+  import {
+    PodV1GVRK,
+    getContainers,
+    randomUUID,
+    routeString,
+  } from "../lib/util";
   import type { V1PodList } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
   import ResourceToolbar from "../lib/ResourceToolbar.svelte";
@@ -18,20 +23,19 @@
 
   $: toolbarContent = [{ index: 0, name: "Pod List" }];
 
-  $: $dataSend = [
-    {
-      type: "list",
-      request: {
-        namespace: $namespace,
-        kubeGVRK: PodV1GVRK,
-        // kubeOptions: {
-        //   limit: 20,
-        // },
-      },
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      namespace: $namespace,
+      kubeGVRK: PodV1GVRK,
+      // kubeOptions: {
+      //   limit: 20,
+      // },
     },
-  ];
+  } as any;
 
-  $: podListData = $dataList;
+  $: $dataSend = [sendList];
 
   // $: kubeContinue = (podListData?.metadata as V1KubeListMeta).continue;
 
@@ -44,17 +48,14 @@
   //   podListData?.metadata?.remainingItemCount,
   // );
 
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      podListData = dl.data;
+    }
+  });
+
   dataDelete.subscribe((err) => {
-    if (!err)
-      $dataSend = [
-        {
-          type: "list",
-          request: {
-            namespace: $namespace,
-            kubeGVRK: PodV1GVRK,
-          },
-        },
-      ];
+    if (!err) $dataSend = [sendList];
   });
 
   function onDelete(item: any) {

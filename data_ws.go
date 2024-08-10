@@ -404,6 +404,7 @@ func (dss DataStreamSession) List(recvMsg DataStreamMessage, client *dynamic.Dyn
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.list,
 		},
 	}
@@ -434,6 +435,7 @@ func (dss DataStreamSession) ListAll(recvMsg DataStreamMessage, client *dynamic.
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.listAll,
 		},
 	}
@@ -475,6 +477,7 @@ func (dss DataStreamSession) Get(recvMsg DataStreamMessage, client *dynamic.Dyna
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.get,
 		},
 	}
@@ -505,6 +508,7 @@ func (dss DataStreamSession) Update(recvMsg DataStreamMessage, client *dynamic.D
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.update,
 		},
 	}
@@ -535,6 +539,7 @@ func (dss DataStreamSession) Delete(recvMsg DataStreamMessage, client *dynamic.D
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.delete,
 		},
 	}
@@ -563,6 +568,7 @@ func (dss DataStreamSession) ShowValuesHelm(recvMsg DataStreamMessage, config *r
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmShowValues,
 		},
 	}
@@ -593,6 +599,7 @@ func (dss DataStreamSession) ListHelm(recvMsg DataStreamMessage, config *rest.Co
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmList,
 		},
 	}
@@ -623,6 +630,7 @@ func (dss DataStreamSession) GetHelm(recvMsg DataStreamMessage, config *rest.Con
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmGet,
 		},
 	}
@@ -653,6 +661,7 @@ func (dss DataStreamSession) PullHelm(recvMsg DataStreamMessage, config *rest.Co
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmPull,
 		},
 	}
@@ -683,7 +692,8 @@ func (dss DataStreamSession) GetHelmTags(recvMsg DataStreamMessage, config *rest
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
-			Type: WSOpType.helmPull,
+			OpID: recvMsg.Op.OpID,
+			Type: WSOpType.helmGetTags,
 		},
 	}
 
@@ -718,6 +728,7 @@ func (dss DataStreamSession) InstallHelm(recvMsg DataStreamMessage, config *rest
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmInstall,
 		},
 	}
@@ -748,6 +759,7 @@ func (dss DataStreamSession) UpgradeHelm(recvMsg DataStreamMessage, config *rest
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmUpgrade,
 		},
 	}
@@ -778,6 +790,7 @@ func (dss DataStreamSession) UninstallHelm(recvMsg DataStreamMessage, config *re
 
 	dsm := DataStreamMessage{
 		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
 			Type: WSOpType.helmUninstall,
 		},
 	}

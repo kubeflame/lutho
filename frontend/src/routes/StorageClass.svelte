@@ -6,6 +6,7 @@
     routeString,
     StorageClassV1GVRK,
     getLabels,
+    randomUUID,
   } from "../lib/util";
   import type { V1StorageClass } from "@kubernetes/client-node";
   import HeaderElement from "../lib/HeaderElement.svelte";
@@ -33,26 +34,38 @@
     { index: 1, name: params.name },
   ];
 
-  $dataSend = [
-    {
-      type: "get",
-      request: {
-        name: params.name,
-        kubeGVRK: StorageClassV1GVRK,
-      },
+  $: sendGet = {
+    opID: randomUUID(),
+    type: "get",
+    request: {
+      name: params.name,
+      kubeGVRK: StorageClassV1GVRK,
     },
-  ];
+  } as any;
 
-  $: storageClassData = $dataGet;
+  $: $dataSend = [sendGet];
+
+  $: sendUpdate = {
+    opID: randomUUID(),
+    type: "update",
+  } as any;
+
+  dataGet.subscribe((dg) => {
+    if (dg && dg.op?.opID === sendGet.opID) {
+      storageClassData = dg.data;
+    }
+  });
 
   dataUpdate.subscribe((du) => {
-    storageClassData = du;
+    if (du && du.op?.opID === sendUpdate.opID) {
+      storageClassData = du.data;
+    }
   });
 
   function update() {
     $dataSend = [
       {
-        type: "update",
+        ...sendUpdate,
         request: {
           name: params.name,
           kubeGVRK: StorageClassV1GVRK,
