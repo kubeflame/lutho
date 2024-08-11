@@ -428,6 +428,14 @@ export const CustomResourceDefinitionV1GVRK: KubeGVRK = {
   isNamespaced: false,
 } as const;
 
+export const HelmChartV1GVRK: KubeGVRK = {
+  group: "helm.cattle.io",
+  version: "v1",
+  resource: "helmcharts",
+  kind: "HelmChart",
+  isNamespaced: true,
+} as const;
+
 export const nanoToMiliCoreDivider = 1000000;
 
 export const WSCloseCode = {

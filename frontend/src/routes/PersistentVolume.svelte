@@ -70,7 +70,7 @@
         fieldSelector: parseFieldSelector({
           kind: PersistentVolumeV1GVRK.kind,
           name: params.name,
-          namespace: params.namespace,
+          namespace: "",
         }),
       },
     },

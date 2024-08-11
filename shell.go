@@ -67,6 +67,9 @@ func (t TerminalSession) Next() *remotecommand.TerminalSize {
 func (t TerminalSession) Read(p []byte) (int, error) {
 	m, err := t.sockJSSession.Recv()
 	if err != nil {
+		if t.sockJSSession.GetSessionState() != sockjs.SessionActive {
+			return copy(p, END_OF_TRANSMISSION), io.EOF
+		}
 		// Send terminated signal to process to avoid resource leak
 		return copy(p, END_OF_TRANSMISSION), err
 	}
@@ -155,7 +158,7 @@ func (tsm *TerminalSessionMap) Close(sessionId string, status uint32, reason str
 
 var terminalSessions = TerminalSessionMap{Sessions: make(map[string]TerminalSession)}
 
-// handleTerminalSession is Called by net/http for any new /srv/data connections
+// handleTerminalSession is Called by net/http for any new /srv/shell connections
 func handleTerminalSession(session sockjs.Session) {
 	var (
 		buf             string
@@ -169,6 +172,9 @@ func handleTerminalSession(session sockjs.Session) {
 	}
 
 	if buf, err = session.Recv(); err != nil {
+		if session.GetSessionState() != sockjs.SessionActive {
+			return
+		}
 		fmt.Printf("handleTerminalSession: can't Recv: %v\n", err)
 		return
 	}

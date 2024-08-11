@@ -3,7 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { apiURL, WSCloseCode } from "../util";
 import { onDestroy, onMount } from "svelte";
-import { writable, type Writable } from "svelte/store";
+import { get, writable, type Writable } from "svelte/store";
 import { type TerminalMessage, type Alert, type SockState } from "../types";
 import { darkTheme, lightTheme } from "./themes";
 
@@ -82,9 +82,7 @@ export default function createXterm(
     showShellReconnect.set(false);
     sockState.set({ state: this.readyState, bound: false });
     sessionId.subscribe((id) => {
-      if (id) {
-        console.log(id);
-        
+      if (id && !get(sockState).bound) {
         sock.send(
           JSON.stringify({
             op: "bind",
@@ -138,7 +136,7 @@ export default function createXterm(
   });
 
   term.onResize(({ cols, rows }) => {
-    if (sock.readyState === WebSocket.OPEN)
+    if (sock.readyState === WebSocket.OPEN && get(sockState).bound)
       sock.send(
         JSON.stringify({
           op: "resize",
@@ -151,7 +149,7 @@ export default function createXterm(
   });
 
   term.onData((e) => {
-    if (sock.readyState === WebSocket.OPEN)
+    if (sock.readyState === WebSocket.OPEN && get(sockState).bound)
       sock.send(
         JSON.stringify({
           op: "stdin",
@@ -178,7 +176,7 @@ export default function createXterm(
   observer.observe(htmlEl as Node, { attributes: true });
 
   onDestroy(() => {
-    term.dispose();
+    term && term.dispose();
     sock.readyState === WebSocket.OPEN && sock?.close(WSCloseCode.info);
   });
 

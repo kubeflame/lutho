@@ -67,7 +67,7 @@
         fieldSelector: parseFieldSelector({
           kind: NodeV1GVRK.kind,
           name: params.name,
-          namespace: params.namespace,
+          namespace: "",
         }),
       },
     },

@@ -110,6 +110,7 @@
 
     sock.onerror = function (e) {
       alert = { message: e.toString(), type: "error" };
+      sock?.readyState === WebSocket.OPEN && sock?.close(WSCloseCode.error);
     };
   }
 

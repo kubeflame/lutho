@@ -1,7 +1,15 @@
 <script lang="ts">
   import CodeMirror from "../../lib/codemirror/CodeMirror.svelte";
   import { dump as toYaml } from "js-yaml";
-  import { EmptyGVRK, randomUUID, routeString, tabs } from "../../lib/util";
+  import {
+    EmptyGVRK,
+    EventV1GVRK,
+    HelmChartV1GVRK,
+    parseFieldSelector,
+    randomUUID,
+    routeString,
+    tabs,
+  } from "../../lib/util";
   import {
     type Helm,
     type HelmRepoData,
@@ -16,12 +24,20 @@
   import ResourceToolbarBreadcrumbs from "../../lib/ResourceToolbarBreadcrumbs.svelte";
   import EmbeddedTable from "../../lib/tables/EmbeddedTable.svelte";
   import SvgIcon from "../../lib/SvgIcon.svelte";
+  import Events from "../../lib/Events.svelte";
 
   export let params: any;
 
-  const tabItems = [tabs.details, tabs.yaml];
-  const { sockError, sockState, isLoading, dataSend, dataGet, dataUpdate } =
-    socketStore();
+  const tabItems = [tabs.details, tabs.yaml, tabs.events];
+  const {
+    sockError,
+    sockState,
+    isLoading,
+    dataSend,
+    dataGet,
+    dataList,
+    dataUpdate,
+  } = socketStore();
 
   let tabQueryParam: TabQueryParam;
   let docStore: any;
@@ -36,6 +52,7 @@
   let chartURL: string;
   let chartName: string = "";
   let chartIsOCI: boolean;
+  let eventListData: any;
 
   $: toolbarContent = [
     { index: 0, name: "Helm List", url: routeString.helm + "?tab=List" },
@@ -55,11 +72,39 @@
     },
   } as any;
   $: $dataSend = [sendGet];
+  $: sendList = {
+    opID: randomUUID(),
+    type: "list",
+    request: {
+      name: params.name,
+      kubeGVRK: EventV1GVRK,
+      kubeOptions: {
+        fieldSelector: parseFieldSelector({
+          kind: HelmChartV1GVRK.kind,
+          name: params.name,
+          namespace: params.namespace,
+        }),
+      },
+    },
+  } as any;
+  $: if (tabQueryParam === "events") {
+    $dataSend = [sendList];
+  }
 
   dataGet.subscribe((dg) => {
     if (dg && dg.op?.opID === sendGet.opID) {
       helmReleaseData = dg.data;
     }
+  });
+
+  dataList.subscribe((dl) => {
+    if (dl && dl.op?.opID === sendList.opID) {
+      eventListData = dl.data;
+    }
+  });
+
+  dataSend.subscribe((ds) => {
+    if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
   function getRepo(repoData: HelmRepoData[], name: string): HelmRepoData {
@@ -260,5 +305,7 @@
         </div>
       </div>
     </dialog>
+  {:else if tabQueryParam === "events"}
+    <Events kubeEvents={eventListData?.items} eventsReversed={0} />
   {/if}
 </RouterPage>
