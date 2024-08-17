@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	v1 "k8s.io/api/authorization/v1"
+	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -54,36 +54,36 @@ func initDynamicClient(config *rest.Config) (*dynamic.DynamicClient, error) {
 	return dynamic.NewForConfig(config)
 }
 
-func authInit(ar *APIResource) (err error) {
+func authInit(ar *APIResource) (ssar *authv1.SelfSubjectAccessReview, err error) {
 	cfg, err := initClusterConfig(ar.AuthRequest)
 	if err != nil {
-		return fmt.Errorf("could not initialize cluster config: %s", err)
+		return ssar, fmt.Errorf("could not initialize cluster config: %s", err)
 	}
 	ar.Config = cfg
 
 	cs, err := initClientset(ar.Config)
 	if err != nil {
-		return fmt.Errorf("could not initialize kubernetes clientset: %s", err)
+		return ssar, fmt.Errorf("could not initialize kubernetes clientset: %s", err)
 	}
 	ar.Clientset = cs
 
 	dc, err := initDynamicClient(ar.Config)
 	if err != nil {
-		return fmt.Errorf("could not initialize kubernetes dynamic client: %s", err)
+		return ssar, fmt.Errorf("could not initialize kubernetes dynamic client: %s", err)
 	}
 	ar.DynamicClient = dc
 
 	hac, hes, err := initHelm(ar)
 	if err != nil {
-		return fmt.Errorf("could not initialize helm client: %s", err)
+		return ssar, fmt.Errorf("could not initialize helm client: %s", err)
 	}
 
 	ar.Helm = &Helm{ActionConfig: hac, EnvSettings: hes}
 
 	ssarr := &SelfSubjectAccessReviewResource{
-		SSAR: &v1.SelfSubjectAccessReview{
-			Spec: v1.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &v1.ResourceAttributes{
+		SSAR: &authv1.SelfSubjectAccessReview{
+			Spec: authv1.SelfSubjectAccessReviewSpec{
+				ResourceAttributes: &authv1.ResourceAttributes{
 					Verb:     "*",
 					Resource: "*",
 				},
@@ -91,10 +91,11 @@ func authInit(ar *APIResource) (err error) {
 		},
 	}
 
-	_, errReview := ssarr.Review(ar.Clientset)
+	var errReview error
+	ssar, errReview = ssarr.Review(ar.Clientset)
 	if errReview != nil {
-		return errReview
+		return ssar, errReview
 	}
 
-	return nil
+	return ssar, nil
 }

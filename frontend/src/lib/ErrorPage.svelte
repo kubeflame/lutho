@@ -10,6 +10,10 @@
 
   const refreshSvgIconClassNames: string = "h-5 w-5 pr-1";
   const svgIconStrokeWidth: number = 1.5;
+
+  window.onhashchange = () => {
+    errorMessage = "";
+  };
 </script>
 
 <div

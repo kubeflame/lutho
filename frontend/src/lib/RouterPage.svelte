@@ -44,7 +44,8 @@
       <ErrorPage bind:errorMessage={error} />
     {:else if loading}
       <LoadingNewton />
+    {:else}
+      <slot />
     {/if}
-    <slot />
   </div>
 </div>

@@ -28,6 +28,4 @@ WORKDIR /app
 
 COPY --from=backend /lutho /lutho
 
-EXPOSE 3001
-
 ENTRYPOINT ["/lutho"]

@@ -1,9 +1,12 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { compression } from "vite-plugin-compression2";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   build: {
+    minify: "esbuild",
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -17,5 +20,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [svelte()],
+  plugins: [svelte(), compression()],
 });

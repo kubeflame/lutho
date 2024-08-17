@@ -61,8 +61,6 @@
       type: KubeAuthType.kubeconfigRaw,
     },
   ];
-
-  $: console.log(authType);
 </script>
 
 <HeaderElement

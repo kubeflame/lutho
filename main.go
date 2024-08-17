@@ -16,6 +16,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/urfave/cli/v2"
+	authv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -72,6 +73,7 @@ type APIResource struct {
 	CliContext    *cli.Context
 	AuthRequest   *AuthRequest
 	AuthState     bool
+	SSAR          *authv1.SelfSubjectAccessReview
 	Clientset     *kubernetes.Clientset
 	DynamicClient *dynamic.DynamicClient
 	Error         error
@@ -224,9 +226,10 @@ func (ar *APIResource) StreamLogs(c echo.Context) error {
 }
 
 type AuthResponse struct {
-	Error    string `json:"error"`
-	KubeHost string `json:"kubeHost"`
-	State    bool   `json:"state"`
+	Error        string                          `json:"error"`
+	KubeHost     string                          `json:"kubeHost"`
+	State        bool                            `json:"state"`
+	AccessReview *authv1.SelfSubjectAccessReview `json:"accessReview"`
 }
 
 type AuthRequest struct {
@@ -246,16 +249,19 @@ func (ar *APIResource) Auth(c echo.Context) (err error) {
 		})
 	}
 
-	if err := authInit(ar); err != nil {
+	ssar, errInit := authInit(ar)
+	if errInit != nil {
 		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error: fmt.Sprintf("Auth error: %s", err),
-			State: false,
+			Error:        fmt.Sprintf("Auth error: %s", err),
+			State:        false,
+			AccessReview: ssar,
 		})
 	}
 
 	ar.AuthState = true
+	ar.SSAR = ssar
 
-	return c.JSON(http.StatusOK, AuthResponse{State: ar.AuthState, KubeHost: ar.Config.Host})
+	return c.JSON(http.StatusOK, AuthResponse{State: ar.AuthState, KubeHost: ar.Config.Host, AccessReview: ar.SSAR})
 }
 
 var portFlagValue string
@@ -350,30 +356,37 @@ func main() {
 				Action: func(ctx *cli.Context) error {
 					apiRes.CliContext = ctx
 					apiRes.AuthRequest = &AuthRequest{}
+					apiRes.SSAR = &authv1.SelfSubjectAccessReview{}
 
 					switch {
 					case apiRes.CliContext.IsSet(kubeconfigFlag.Name):
 						apiRes.AuthRequest.Type = KubernetesConfigType.kubeconfigPath
 						apiRes.AuthRequest.KubeconfigPath = kubeconfigFlagValue
-						if err := authInit(&apiRes); err != nil {
-							return err
+						ssar, errInit := authInit(&apiRes)
+						if errInit != nil {
+							return errInit
 						}
 						apiRes.AuthState = true
+						apiRes.SSAR = ssar
 					case apiRes.CliContext.IsSet(kubeAccessTokenFlag.Name):
 						apiRes.AuthRequest.Type = KubernetesConfigType.accessToken
 						apiRes.AuthRequest.MasterURL = kubeMasterURLFlagValue
 						apiRes.AuthRequest.AccessToken = kubeAccessTokenFlagValue
 						apiRes.AuthRequest.TLSInsecure = true
-						if err := authInit(&apiRes); err != nil {
-							return err
+						ssar, errInit := authInit(&apiRes)
+						if errInit != nil {
+							return errInit
 						}
 						apiRes.AuthState = true
+						apiRes.SSAR = ssar
 					case apiRes.CliContext.IsSet(kubeInClusterConfigFlag.Name):
 						apiRes.AuthRequest.Type = KubernetesConfigType.inClusterConfig
-						if err := authInit(&apiRes); err != nil {
-							return err
+						ssar, errInit := authInit(&apiRes)
+						if errInit != nil {
+							return errInit
 						}
 						apiRes.AuthState = true
+						apiRes.SSAR = ssar
 					}
 
 					e := echo.New()
@@ -412,7 +425,7 @@ func main() {
 							kubeHost = apiRes.Config.Host
 						}
 						return c.JSON(http.StatusOK, AuthResponse{
-							State: apiRes.AuthState, KubeHost: kubeHost,
+							State: apiRes.AuthState, KubeHost: kubeHost, AccessReview: apiRes.SSAR,
 						},
 						)
 					})
@@ -437,7 +450,7 @@ func main() {
 	sort.Sort(cli.FlagsByName(app.Flags))
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		log.Fatal("Application could not start: ", err)
 	}
 
 }

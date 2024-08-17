@@ -7,6 +7,7 @@ import type {
   V1PodList,
   V1ReplicaSetList,
   V1ReplicationControllerList,
+  V1SelfSubjectAccessReview,
   V1ServiceList,
   V1StatefulSetList,
 } from "@kubernetes/client-node";
@@ -27,6 +28,7 @@ export type AuthResponse = {
   error: string;
   state: boolean;
   kubeHost: string;
+  accessReview: V1SelfSubjectAccessReview;
 };
 
 export type AuthRequest = {
