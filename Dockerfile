@@ -20,12 +20,12 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /lutho
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./lutho
 
 # =========== FIN ===========
 FROM alpine:3.18
 WORKDIR /app
 
-COPY --from=backend /lutho /lutho
+COPY --from=backend /app/lutho ./lutho
 
-ENTRYPOINT ["/lutho"]
+ENTRYPOINT ["/app/lutho"]

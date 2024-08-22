@@ -414,6 +414,9 @@ func main() {
 					}
 
 					e.Use(middleware.RateLimiterWithConfig(config))
+					e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+						Level: 9,
+					}))
 
 					fs := echo.MustSubFS(files, "frontend/dist")
 					e.StaticFS("/", fs)

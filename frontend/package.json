@@ -22,6 +22,7 @@
     "@sveltejs/vite-plugin-svelte": "^3.0.1",
     "@tsconfig/svelte": "^5.0.0",
     "@types/js-yaml": "^4.0.7",
+    "@types/sockjs-client": "^1.5.4",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "ansi-to-html": "^0.7.2",
@@ -45,8 +46,7 @@
     "theme-change": "^2.5.0",
     "tslib": "^2.6.1",
     "typescript": "5.4.3",
-    "vite": "^5.2.2",
-    "vite-plugin-compression2": "^1.1.4"
+    "vite": "^5.2.2"
   },
   "dependencies": {}
 }

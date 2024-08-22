@@ -6,9 +6,6 @@
   import { transitionEffects } from "./util";
 
   const gray400 = "#9ca3af";
-
-  export let params = {};
-  params;
 </script>
 
 <HeaderElement />
