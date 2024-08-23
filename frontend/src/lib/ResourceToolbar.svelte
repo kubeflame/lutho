@@ -8,7 +8,7 @@
   export let followLogs: boolean = false;
   export let onChangeLogsBtn = writable<Event>();
   export let showShellReconnect = writable<boolean>(false);
-  export let reconnectShell: boolean = false;
+  export let reconnectShell = writable<boolean>(false);
   export let onClickSubmit: Function = () => {};
   export let codeMirrorChanged: boolean = false;
 </script>
@@ -56,7 +56,7 @@
         class="btn btn-xs bg-base-100 outline-primary hover:btn-primary
           mr-4 text-sm outline outline-1 drop-shadow-md"
         on:click={() => {
-          reconnectShell = true;
+          reconnectShell.set(true);
         }}
       >
         Reconnect

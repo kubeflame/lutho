@@ -56,7 +56,7 @@
   let tabQueryParam: TabQueryParam;
   let activeContainer: Writable<string>;
   let showShellReconnect: Writable<boolean>;
-  let reconnectShell: boolean;
+  let reconnectShell: Writable<boolean>;
   let codeMirrorChanged: boolean;
   let eventListData: any;
 
@@ -154,14 +154,6 @@
       },
     ];
   }
-
-  let unique = {};
-  function restart() {
-    unique = {};
-    reconnectShell = false;
-  }
-
-  $: if (reconnectShell || $activeContainer) restart();
 </script>
 
 <HeaderElement>
@@ -514,14 +506,13 @@
       bind:namespace={params.namespace}
     />
   {:else if tabQueryParam === "shell"}
-    {#key unique}
-      <Shell
-        bind:name={params.name}
-        bind:namespace={params.namespace}
-        bind:showShellReconnect
-        bind:activeContainer
-      />
-    {/key}
+    <Shell
+      bind:name={params.name}
+      bind:namespace={params.namespace}
+      bind:showShellReconnect
+      bind:activeContainer
+      bind:reconnectShell
+    />
   {:else if tabQueryParam === "events"}
     <Events kubeEvents={eventListData?.items} eventsReversed={0} />
   {/if}
