@@ -19,8 +19,10 @@ COPY --from=frontend /app/dist ./frontend/dist
 COPY go.mod go.sum ./
 RUN go mod download
 
+ARG LUTHO_VERSION
+
 COPY *.go ./
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./lutho
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.AppVersion=$LUTHO_VERSION" -o ./lutho
 
 # =========== FIN ===========
 FROM alpine:3.18

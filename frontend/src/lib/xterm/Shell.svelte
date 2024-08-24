@@ -26,23 +26,23 @@
   let sockState = { state: 0, bound: false };
   let alert = { message: null, type: null } as Alert;
 
-  $: $activeContainer && el && init(el);
+  $: $activeContainer && el && init(el, $activeContainer);
   $: errorMessage && (alert = { message: errorMessage, type: "error" });
-  $: $reconnectShell && init(el);
+  $: $reconnectShell && init(el, $activeContainer);
 
-  function init(el: any) {
-    createSocket();
+  function init(el: any, ac: string) {
+    createSocket(ac);
     createXterm(el);
   }
 
-  async function createSocket() {
+  async function createSocket(ac: string) {
     if (sock) sock.close();
     alert = { message: null, type: null };
     reconnectShell.set(false);
     isLoading = true;
 
     await fetch(
-      `${apiURL.shellExec}?namespace=${namespace}&name=${name}&container=${$activeContainer}`,
+      `${apiURL.shellExec}?namespace=${namespace}&name=${name}&container=${ac}`,
     )
       .then((resp) => {
         return resp.json();

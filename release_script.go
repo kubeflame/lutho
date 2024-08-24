@@ -40,7 +40,7 @@ type Build struct {
 func (b Build) Execute() error {
 	envVars := []string{"GOOS=" + b.GOOS, "GOARCH=" + b.GOARCH}
 	outputName := fmt.Sprintf("%s-%s-%s", b.Name, b.GOOS, b.GOARCH)
-	ldflags := fmt.Sprintf("-ldflags=-s -w -X 'main.AppVersion=%s'", b.AppVersion)
+	ldflags := fmt.Sprintf("-ldflags=-s -w -X main.AppVersion=%s", b.AppVersion)
 	if b.GOOS == "windows" {
 		outputName += ".exe"
 	}
