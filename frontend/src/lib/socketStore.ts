@@ -6,7 +6,6 @@ import {
   type SockState,
 } from "./types";
 import { apiURL, httpStatus, WSCloseCode } from "./util";
-import SockJS from "sockjs-client/dist/sockjs";
 import { onDestroy, onMount } from "svelte";
 import { statusCode } from "./stores";
 
@@ -43,9 +42,9 @@ function sockConnection(
   dataUpdate: Writable<any>,
   dataDelete: Writable<any>,
 ): WebSocket {
-  const sock: WebSocket = new SockJS(`http://${location.host}${apiURL.data}`);
-
   getSessionID(isLoading, sockError, sessionId);
+
+  const sock = new WebSocket(`ws://${location.host}${apiURL.data}`);
 
   sock.onopen = function () {
     sockState.set({ state: sock.readyState, bound: false });
@@ -154,15 +153,6 @@ function sockConnection(
     if (!ce.wasClean) {
       sockError.set(ce.reason);
     }
-    sockState.subscribe((s) => {
-      s.state === WebSocket.OPEN &&
-        sock.send(
-          JSON.stringify({
-            op: { type: "close" },
-          }),
-        );
-    });
-    sockState.set({ state: WebSocket.CLOSED, bound: false });
     isLoading.set(false);
   };
 

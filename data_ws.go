@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/igm/sockjs-go/v3/sockjs"
+	"github.com/gorilla/websocket"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
@@ -20,10 +20,10 @@ import (
 )
 
 type DataStreamSession struct {
-	id            string
-	bound         chan error
-	sockJSSession sockjs.Session
-	close         chan struct{}
+	id    string
+	bound chan error
+	ws    *websocket.Conn
+	close chan struct{}
 }
 
 type DataStreamMessage struct {
@@ -57,11 +57,12 @@ func (dsm *DataSessionMap) Set(sessionId string, session DataStreamSession) {
 	dsm.Sessions[sessionId] = session
 }
 
-func (dsm *DataSessionMap) Close(sessionId string, status uint32, reason string) {
+func (dsm *DataSessionMap) Close(sessionId string, status uint, reason string) {
 	dsm.Lock.Lock()
 	defer dsm.Lock.Unlock()
 	ses := dsm.Sessions[sessionId]
-	ses.sockJSSession.Close(status, reason)
+	ses.ws.WriteJSON(DataStreamMessage{Op: DataStreamOp{Type: "close"}, Data: reason, StatusCode: status})
+	ses.ws.Close()
 	delete(dsm.Sessions, sessionId)
 }
 
@@ -416,12 +417,7 @@ func (dss DataStreamSession) List(recvMsg DataStreamMessage, client *dynamic.Dyn
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -458,12 +454,7 @@ func (dss DataStreamSession) ListAll(recvMsg DataStreamMessage, client *dynamic.
 
 	dsm.Data = string(b)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -489,12 +480,7 @@ func (dss DataStreamSession) Get(recvMsg DataStreamMessage, client *dynamic.Dyna
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -520,12 +506,7 @@ func (dss DataStreamSession) Update(recvMsg DataStreamMessage, client *dynamic.D
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -549,12 +530,7 @@ func (dss DataStreamSession) Delete(recvMsg DataStreamMessage, client *dynamic.D
 		dsm.Error = kubeErr.Error()
 	}
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -580,12 +556,7 @@ func (dss DataStreamSession) ShowValuesHelm(recvMsg DataStreamMessage, config *r
 
 	dsm.Data = data
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -611,12 +582,7 @@ func (dss DataStreamSession) ListHelm(recvMsg DataStreamMessage, config *rest.Co
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -642,12 +608,7 @@ func (dss DataStreamSession) GetHelm(recvMsg DataStreamMessage, config *rest.Con
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -673,12 +634,7 @@ func (dss DataStreamSession) PullHelm(recvMsg DataStreamMessage, config *rest.Co
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -709,12 +665,7 @@ func (dss DataStreamSession) GetHelmTags(recvMsg DataStreamMessage, config *rest
 
 	dsm.Data = string(b)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -740,12 +691,7 @@ func (dss DataStreamSession) InstallHelm(recvMsg DataStreamMessage, config *rest
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -771,12 +717,7 @@ func (dss DataStreamSession) UpgradeHelm(recvMsg DataStreamMessage, config *rest
 
 	dsm.Data = string(data)
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -804,12 +745,7 @@ func (dss DataStreamSession) UninstallHelm(recvMsg DataStreamMessage, config *re
 		dsm.Data = data.Release.Info.Description
 	}
 
-	msg, err := json.Marshal(dsm)
-	if err != nil {
-		return err
-	}
-
-	if err := dss.sockJSSession.Send(string(msg)); err != nil {
+	if err := dss.ws.WriteJSON(dsm); err != nil {
 		return err
 	}
 
@@ -818,31 +754,19 @@ func (dss DataStreamSession) UninstallHelm(recvMsg DataStreamMessage, config *re
 
 var dataSessions = DataSessionMap{Sessions: make(map[string]DataStreamSession)}
 
-func handleDataStreamSession(session sockjs.Session) {
+func handleDataStreamSession(ws *websocket.Conn) {
 	var (
-		buf string
-		err error
 		msg DataStreamMessage
 		dss DataStreamSession
 	)
 
-	if session.GetSessionState() != sockjs.SessionActive {
-		fmt.Println("getsessionstate ->", session.GetSessionState())
-		return
-	}
-
-	if buf, err = session.Recv(); err != nil {
+	if err := ws.ReadJSON(&msg); err != nil {
 		fmt.Printf("handleDataStreamSession: can't Recv: %v\n", err)
 		return
 	}
 
-	if err = json.Unmarshal([]byte(buf), &msg); err != nil {
-		fmt.Printf("handleDataStreamSession: can't UnMarshal (%v): %s\n", err, buf)
-		return
-	}
-
 	if msg.Op.Type != WSOpType.bind {
-		fmt.Printf("handleDataStreamSession: expected 'bind' message, got: %s\n", buf)
+		fmt.Printf("handleDataStreamSession: expected 'bind' message, got: %s\n", msg.Op.Type)
 		return
 	}
 
@@ -851,21 +775,17 @@ func handleDataStreamSession(session sockjs.Session) {
 		return
 	}
 
-	dss.sockJSSession = session
+	dss.ws = ws
 	dataSessions.Set(msg.SessionID, dss)
 	dss.bound <- nil
 
-	sendMsg, senderr := json.Marshal(DataStreamMessage{
+	sendMsg := DataStreamMessage{
 		Op: DataStreamOp{
 			Type: WSOpType.bind,
 		},
-	})
-	if senderr != nil {
-		fmt.Println("handleStreamData senderr:", senderr)
-		return
 	}
 
-	if senderr := session.Send(string(sendMsg)); senderr != nil {
+	if senderr := dss.ws.WriteJSON(sendMsg); senderr != nil {
 		fmt.Println("handleStreamData senderr:", senderr)
 		return
 	}
@@ -873,75 +793,68 @@ func handleDataStreamSession(session sockjs.Session) {
 
 func startDataStream(ar *APIResource, dss DataStreamSession, closeChan chan struct{}) error {
 	for {
-		m, err := dss.sockJSSession.Recv()
-		if dss.sockJSSession.GetSessionState() != sockjs.SessionActive {
-			defer close(closeChan)
-			return nil
-		}
+		var dsm DataStreamMessage
+
+		err := dss.ws.ReadJSON(&dsm)
 		if err != nil {
 			defer close(closeChan)
 			return err
 		}
 
-		var msg DataStreamMessage
-		if err := json.Unmarshal([]byte(m), &msg); err != nil {
-			return err
-		}
-
 		switch {
-		case msg.Op.Type == WSOpType.list && dss.id == msg.SessionID:
-			if err := dss.List(msg, ar.DynamicClient); err != nil {
+		case dsm.Op.Type == WSOpType.list && dss.id == dsm.SessionID:
+			if err := dss.List(dsm, ar.DynamicClient); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.listAll && dss.id == msg.SessionID:
-			if err := dss.ListAll(msg, ar.DynamicClient); err != nil {
+		case dsm.Op.Type == WSOpType.listAll && dss.id == dsm.SessionID:
+			if err := dss.ListAll(dsm, ar.DynamicClient); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.get && dss.id == msg.SessionID:
-			if err := dss.Get(msg, ar.DynamicClient); err != nil {
+		case dsm.Op.Type == WSOpType.get && dss.id == dsm.SessionID:
+			if err := dss.Get(dsm, ar.DynamicClient); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.update && dss.id == msg.SessionID:
-			if err := dss.Update(msg, ar.DynamicClient); err != nil {
+		case dsm.Op.Type == WSOpType.update && dss.id == dsm.SessionID:
+			if err := dss.Update(dsm, ar.DynamicClient); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.delete && dss.id == msg.SessionID:
-			if err := dss.Delete(msg, ar.DynamicClient); err != nil {
+		case dsm.Op.Type == WSOpType.delete && dss.id == dsm.SessionID:
+			if err := dss.Delete(dsm, ar.DynamicClient); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmShowValues && dss.id == msg.SessionID:
-			if err := dss.ShowValuesHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmShowValues && dss.id == dsm.SessionID:
+			if err := dss.ShowValuesHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmList && dss.id == msg.SessionID:
-			if err := dss.ListHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmList && dss.id == dsm.SessionID:
+			if err := dss.ListHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmGet && dss.id == msg.SessionID:
-			if err := dss.GetHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmGet && dss.id == dsm.SessionID:
+			if err := dss.GetHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmInstall && dss.id == msg.SessionID:
-			if err := dss.InstallHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmInstall && dss.id == dsm.SessionID:
+			if err := dss.InstallHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmUpgrade && dss.id == msg.SessionID:
-			if err := dss.UpgradeHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmUpgrade && dss.id == dsm.SessionID:
+			if err := dss.UpgradeHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmPull && dss.id == msg.SessionID:
-			if err := dss.PullHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmPull && dss.id == dsm.SessionID:
+			if err := dss.PullHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmGetTags && dss.id == msg.SessionID:
-			if err := dss.GetHelmTags(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmGetTags && dss.id == dsm.SessionID:
+			if err := dss.GetHelmTags(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.helmUninstall && dss.id == msg.SessionID:
-			if err := dss.UninstallHelm(msg, ar.Config, ar.Helm); err != nil {
+		case dsm.Op.Type == WSOpType.helmUninstall && dss.id == dsm.SessionID:
+			if err := dss.UninstallHelm(dsm, ar.Config, ar.Helm); err != nil {
 				return err
 			}
-		case msg.Op.Type == WSOpType.close && dss.id == msg.SessionID:
+		case dsm.Op.Type == WSOpType.close && dss.id == dsm.SessionID:
 			defer close(closeChan)
 			return nil
 		}

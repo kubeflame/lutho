@@ -9,7 +9,7 @@ import (
 const END_OF_TRANSMISSION = "\u0004"
 
 var WSCloseCode = struct {
-	info, warning, error uint32
+	info, warning, error uint
 }{
 	info:    3000,
 	warning: 3001,

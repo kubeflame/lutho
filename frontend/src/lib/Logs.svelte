@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SockJS from "sockjs-client/dist/sockjs";
   import type { Alert, LogStreamMessage } from "./types";
   import { onDestroy } from "svelte";
   import { apiURL, transitionEffects, WSCloseCode } from "./util";
@@ -22,20 +21,13 @@
   let el: Element;
 
   onChangeLogsBtn.subscribe((c) => {
-    if (c && !followLogs)
-      sock?.close(WSCloseCode.warning, "Log tailing stopped.");
-  });
-
-  activeContainer.subscribe((ac) => {
-    if (ac) {
-      if (followLogs && sock?.readyState === WebSocket.OPEN) {
-        followLogs = false;
-        sock?.close(WSCloseCode.warning, "Log tailing stopped.");
-      }
-      newSession(ac);
+    if (c && !followLogs) {
+      sock?.close(WSCloseCode.warning, "Log tailing stopped");
+      alert = { message: "Log tailing stopped", type: "warning" };
     }
   });
 
+  $: $activeContainer && getLogsBasedOnContainer($activeContainer);
   $: alert = { message: null, type: null } as Alert;
   $: if (followLogs && $activeContainer) {
     el?.insertAdjacentHTML(
@@ -45,13 +37,19 @@
     newSession($activeContainer);
   }
 
+  function getLogsBasedOnContainer(ac: string) {
+    if (followLogs && sock?.readyState === WebSocket.OPEN) {
+      followLogs = false;
+      sock?.close(WSCloseCode.warning, "Log tailing stopped.");
+    }
+    newSession(ac);
+  }
+
   async function newSession(container: string) {
     isFetching = true;
     alert = { message: null, type: null };
 
     if (el && !followLogs) el.innerHTML = "";
-
-    sock = new SockJS(`http://${location.host}${apiURL.logs}`);
 
     await fetch(
       `${apiURL.logsStream}?namespace=${namespace}&name=${
@@ -70,6 +68,8 @@
         alert = { message: error, type: "error" };
       });
 
+    sock = new WebSocket(`ws://${location.host}${apiURL.logs}`);
+
     sock.onopen = function () {
       isFetching = false;
       const startData = { Op: "bind", SessionID: sessionId };
@@ -85,6 +85,19 @@
             sessionId: sessionId,
           }),
         );
+      } else if (resp.op === "close") {
+        if (resp.statusCode === WSCloseCode.info) {
+          alert = { message: resp.data, type: "info" };
+        } else if (
+          resp.statusCode === WSCloseCode.warning &&
+          resp.data === "EOF"
+        ) {
+          alert = { message: resp.data, type: "warning" };
+        } else if (resp.statusCode === WSCloseCode.error) {
+          alert = { message: resp.data, type: "error" };
+        } else if (resp.statusCode === WSCloseCode.warning) {
+          alert = { message: resp.data, type: "warning" };
+        }
       } else if (resp.op === "stdout") {
         el?.insertAdjacentHTML("beforeend", convert.toHtml(resp.data));
         if (followLogs) {
@@ -96,17 +109,7 @@
       }
     };
 
-    sock.onclose = function (e) {
-      if (e.code === WSCloseCode.info) {
-        alert = { message: e.reason, type: "info" };
-      } else if (e.code === WSCloseCode.error && e.reason === "EOF") {
-        alert = { message: e.reason, type: "warning" };
-      } else if (e.code === WSCloseCode.error) {
-        alert = { message: e.reason, type: "error" };
-      } else if (e.code === WSCloseCode.warning) {
-        alert = { message: e.reason, type: "warning" };
-      }
-    };
+    sock.onclose = function (ce) {};
 
     sock.onerror = function (e) {
       alert = { message: e.toString(), type: "error" };

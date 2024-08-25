@@ -46,7 +46,8 @@
     <button
       class="btn btn-circle btn-ghost btn-sm"
       on:click={() => {
-        alert.message = "";
+        alert.message = null;
+        alert.type = null;
       }}
     >
       <SvgIcon strokeWidth={svgIconStrokeWidth} type={"close"} />

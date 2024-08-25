@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/igm/sockjs-go/v3/sockjs"
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -87,15 +87,22 @@ type APIResourceMessage struct {
 	Error      string `json:"error"`
 }
 
-var apiRes = APIResource{}
+var (
+	apiRes   = APIResource{}
+	upgrader = websocket.Upgrader{}
+)
 
 func (ar *APIResource) DataStreamWSHandler(c echo.Context) error {
 	if !ar.AuthState && ar.Config == nil {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
-	sockjs.NewHandler("/srv/data", sockjs.DefaultOptions, handleDataStreamSession).
-		ServeHTTP(c.Response(), c.Request())
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return err
+	}
+
+	handleDataStreamSession(ws)
 
 	return nil
 }
@@ -129,8 +136,12 @@ func (ar *APIResource) ShellWSHandler(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
-	sockjs.NewHandler("/srv/shell", sockjs.DefaultOptions, handleTerminalSession).
-		ServeHTTP(c.Response(), c.Request())
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return err
+	}
+
+	handleTerminalSession(ws)
 
 	return nil
 }
@@ -186,8 +197,12 @@ func (ar *APIResource) LogsWSHandler(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, APIResourceMessage{StatusCode: http.StatusUnauthorized})
 	}
 
-	sockjs.NewHandler("/srv/logs", sockjs.DefaultOptions,
-		handleLogStreamSession).ServeHTTP(c.Response(), c.Request())
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return err
+	}
+
+	handleLogStreamSession(ws)
 
 	return nil
 }

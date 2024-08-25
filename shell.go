@@ -3,13 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
 	"time"
 
-	"github.com/igm/sockjs-go/v3/sockjs"
+	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
@@ -27,10 +26,10 @@ type PtyHandler interface {
 
 // TerminalSession implements PtyHandler (using a SockJS connection)
 type TerminalSession struct {
-	id            string
-	bound         chan error
-	sockJSSession sockjs.Session
-	sizeChan      chan remotecommand.TerminalSize
+	id       string
+	bound    chan error
+	ws       *websocket.Conn
+	sizeChan chan remotecommand.TerminalSize
 }
 
 // TerminalMessage is the messaging protocol between ShellController and TerminalSession.
@@ -65,62 +64,57 @@ func (t TerminalSession) Next() *remotecommand.TerminalSize {
 // Read handles pty->process messages (stdin, resize)
 // Called in a loop from remotecommand as long as the process is running
 func (t TerminalSession) Read(p []byte) (int, error) {
-	m, err := t.sockJSSession.Recv()
+	var tm TerminalMessage
+
+	err := t.ws.ReadJSON(&tm)
 	if err != nil {
-		if t.sockJSSession.GetSessionState() != sockjs.SessionActive {
+		if (terminalSessions.Get(t.id) == TerminalSession{}) {
 			return copy(p, END_OF_TRANSMISSION), io.EOF
 		}
 		// Send terminated signal to process to avoid resource leak
 		return copy(p, END_OF_TRANSMISSION), err
 	}
 
-	var msg TerminalMessage
-	if err := json.Unmarshal([]byte(m), &msg); err != nil {
-		return copy(p, END_OF_TRANSMISSION), err
-	}
-
-	switch msg.Op {
+	switch tm.Op {
+	case WSOpType.close:
+		return copy(p, END_OF_TRANSMISSION), io.EOF
 	case WSOpType.stdin:
-		return copy(p, msg.Data), nil
+		return copy(p, tm.Data), nil
 	case WSOpType.resize:
-		t.sizeChan <- remotecommand.TerminalSize{Width: msg.Cols, Height: msg.Rows}
+		t.sizeChan <- remotecommand.TerminalSize{Width: tm.Cols, Height: tm.Rows}
 		return 0, nil
 	default:
-		return copy(p, END_OF_TRANSMISSION), fmt.Errorf("unknown message type '%s'", msg.Op)
+		return copy(p, END_OF_TRANSMISSION), fmt.Errorf("unknown message type '%s'", tm.Op)
 	}
 }
 
 // Write handles process->pty stdout
 // Called from remotecommand whenever there is any output
 func (t TerminalSession) Write(p []byte) (int, error) {
-	msg, err := json.Marshal(TerminalMessage{
+	tm := TerminalMessage{
 		Op:   WSOpType.stdout,
 		Data: string(p),
-	})
-	if err != nil {
+	}
+
+	if err := t.ws.WriteJSON(tm); err != nil {
 		return 0, err
 	}
 
-	if err = t.sockJSSession.Send(string(msg)); err != nil {
-		return 0, err
-	}
 	return len(p), nil
 }
 
 // Toast can be used to send the user any OOB messages
 // hterm puts these in the center of the terminal
 func (t TerminalSession) Toast(p string) error {
-	msg, err := json.Marshal(TerminalMessage{
+	tm := TerminalMessage{
 		Op:   WSOpType.toast,
 		Data: p,
-	})
-	if err != nil {
+	}
+
+	if err := t.ws.WriteJSON(tm); err != nil {
 		return err
 	}
 
-	if err = t.sockJSSession.Send(string(msg)); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -147,11 +141,12 @@ func (tsm *TerminalSessionMap) Set(sessionId string, session TerminalSession) {
 // Close shuts down the SockJS connection and sends the status code and reason to the client
 // Can happen if the process exits or if there is an error starting up the process
 // For now the status code is unused and reason is shown to the user (unless "")
-func (tsm *TerminalSessionMap) Close(sessionId string, status uint32, reason string) {
+func (tsm *TerminalSessionMap) Close(sessionId string, status uint, reason string) {
 	tsm.Lock.Lock()
 	defer tsm.Lock.Unlock()
 	ses := tsm.Sessions[sessionId]
-	ses.sockJSSession.Close(status, reason)
+	ses.ws.WriteJSON(TerminalMessage{Op: "close", Data: reason, StatusCode: status})
+	ses.ws.Close()
 	close(ses.sizeChan)
 	delete(tsm.Sessions, sessionId)
 }
@@ -159,55 +154,37 @@ func (tsm *TerminalSessionMap) Close(sessionId string, status uint32, reason str
 var terminalSessions = TerminalSessionMap{Sessions: make(map[string]TerminalSession)}
 
 // handleTerminalSession is Called by net/http for any new /srv/shell connections
-func handleTerminalSession(session sockjs.Session) {
+func handleTerminalSession(ws *websocket.Conn) {
 	var (
-		buf             string
-		err             error
-		msg             TerminalMessage
-		terminalSession TerminalSession
+		tm TerminalMessage
+		ts TerminalSession
 	)
 
-	if session.GetSessionState() != sockjs.SessionActive {
-		return
-	}
-
-	if buf, err = session.Recv(); err != nil {
-		if session.GetSessionState() != sockjs.SessionActive {
-			return
-		}
+	if err := ws.ReadJSON(&tm); err != nil {
 		fmt.Printf("handleTerminalSession: can't Recv: %v\n", err)
 		return
 	}
 
-	if err = json.Unmarshal([]byte(buf), &msg); err != nil {
-		fmt.Printf("handleTerminalSession: can't UnMarshal (%v): %s\n", err, buf)
+	if tm.Op != WSOpType.bind {
+		fmt.Printf("handleTerminalSession: expected 'bind' message, got: '%s'\n", tm.Op)
 		return
 	}
 
-	if msg.Op != WSOpType.bind {
-		fmt.Printf("handleTerminalSession: expected 'bind' message, got: '%s'\n", msg.Op)
+	if ts = terminalSessions.Get(tm.SessionID); ts.id == "" {
+		fmt.Printf("handleTerminalSession: can't find session '%s'\n", tm.SessionID)
 		return
 	}
 
-	if terminalSession = terminalSessions.Get(msg.SessionID); terminalSession.id == "" {
-		fmt.Printf("handleTerminalSession: can't find session '%s'\n", msg.SessionID)
-		return
-	}
+	ts.ws = ws
+	terminalSessions.Set(tm.SessionID, ts)
+	ts.bound <- nil
 
-	terminalSession.sockJSSession = session
-	terminalSessions.Set(msg.SessionID, terminalSession)
-	terminalSession.bound <- nil
-
-	sendMsg, senderr := json.Marshal(TerminalMessage{
+	sendMsg := TerminalMessage{
 		Op:        WSOpType.bind,
-		SessionID: msg.SessionID,
-	})
-	if senderr != nil {
-		fmt.Println("handleTerminalSession senderr:", senderr)
-		return
+		SessionID: tm.SessionID,
 	}
 
-	if senderr := session.Send(string(sendMsg)); senderr != nil {
+	if senderr := ts.ws.WriteJSON(sendMsg); senderr != nil {
 		fmt.Println("handleTerminalSession senderr:", senderr)
 		return
 	}

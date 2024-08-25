@@ -9,7 +9,6 @@
   import { FitAddon } from "@xterm/addon-fit";
   import { darkTheme, lightTheme } from "./themes";
   import { onDestroy } from "svelte";
-  import SockJS from "sockjs-client/dist/sockjs";
 
   export let name: any;
   export let namespace: any;
@@ -24,8 +23,8 @@
   let sessionId = "";
   let term: Terminal;
   let sockState = { state: 0, bound: false };
-  let alert = { message: null, type: null } as Alert;
 
+  $: alert = { message: null, type: null } as Alert;
   $: $activeContainer && el && init(el, $activeContainer);
   $: errorMessage && (alert = { message: errorMessage, type: "error" });
   $: $reconnectShell && init(el, $activeContainer);
@@ -55,7 +54,7 @@
         errorMessage = `Cannot get sessionId: ${error}`;
       });
 
-    sock = new SockJS(`http://${location.host}${apiURL.shell}`);
+    sock = new WebSocket(`ws://${location.host}${apiURL.shell}`);
 
     sock.onopen = function () {
       showShellReconnect.set(false);
@@ -73,6 +72,14 @@
       if (resp.error) {
         isLoading = false;
         errorMessage = resp.error as string;
+      } else if (resp.op === "close") {
+        if (resp.statusCode === WSCloseCode.info) {
+          alert = { message: resp.data, type: "info" };
+        } else if (resp.statusCode === WSCloseCode.error) {
+          alert = { message: resp.data, type: "error" };
+        } else if (resp.statusCode === WSCloseCode.warning) {
+          alert = { message: resp.data, type: "warning" };
+        }
       } else if (resp.op === "bind") {
         sockState = { state: this.readyState, bound: true };
         isLoading = false;
@@ -97,13 +104,6 @@
     sock.onclose = (ce: CloseEvent) => {
       isLoading = false;
       showShellReconnect.set(true);
-      if (ce.code === WSCloseCode.info) {
-        alert = { message: ce.reason, type: "info" };
-      } else if (ce.code === WSCloseCode.error) {
-        alert = { message: ce.reason, type: "error" };
-      } else if (ce.code === WSCloseCode.warning) {
-        alert = { message: ce.reason, type: "warning" };
-      }
 
       if (!ce.wasClean) {
         errorMessage = ce.reason;
@@ -180,7 +180,12 @@
 
   onDestroy(() => {
     term && term.dispose();
-    sock?.readyState === WebSocket.OPEN && sock.close(WSCloseCode.info);
+    sock?.readyState === WebSocket.OPEN &&
+      sock.send(
+        JSON.stringify({
+          op: "close",
+        }),
+      );
   });
 </script>
 
