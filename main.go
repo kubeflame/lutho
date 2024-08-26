@@ -17,7 +17,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	authv1 "k8s.io/api/authorization/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -219,7 +219,7 @@ func (ar *APIResource) StreamLogs(c echo.Context) error {
 	pld.ContainerName = c.QueryParam("container")
 	pld.Follow = c.QueryParam("follow")
 	pld.TailLines = c.QueryParam("tailLines")
-	pld.Options = &v1.PodLogOptions{}
+	pld.Options = &corev1.PodLogOptions{}
 	pld.ParameterCodec = scheme.ParameterCodec
 
 	sessionID, err := genSessionId()

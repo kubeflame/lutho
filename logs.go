@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
@@ -106,28 +106,40 @@ func (lss LogStreamSession) SendLogs(client kubernetes.Interface, pld *PodLogsDa
 		req.Param("tailLines", pld.TailLines)
 	}
 
-	out, err := req.Stream(context.TODO())
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	reader := bufio.NewReader(out)
-	for {
-		line, err := reader.ReadBytes('\n')
+	go func() {
+		out, err := req.Stream(context.TODO())
 		if err != nil {
-			return err
+			return
 		}
-		lsm := LogStreamMessage{
-			Op:        WSOpType.stdout,
-			SessionID: lss.id,
-			Data:      string(line),
-		}
+		defer out.Close()
 
-		if err := lss.ws.WriteJSON(lsm); err != nil {
-			return err
+		reader := bufio.NewReader(out)
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				if err == io.EOF {
+					lss.ws.WriteJSON(LogStreamMessage{
+						Op:         "close",
+						Data:       "Log stream ended",
+						StatusCode: WSCloseCode.info,
+					})
+					lss.ws.Close()
+				}
+				return
+			}
+			lsm := LogStreamMessage{
+				Op:        WSOpType.stdout,
+				SessionID: lss.id,
+				Data:      string(line),
+			}
+
+			if err := lss.ws.WriteJSON(lsm); err != nil {
+				return
+			}
 		}
-	}
+	}()
+
+	return nil
 }
 
 type PodLogsData struct {
@@ -137,33 +149,33 @@ type PodLogsData struct {
 	ContainerName  string
 	Follow         string
 	TailLines      string
-	Options        *v1.PodLogOptions
+	Options        *corev1.PodLogOptions
 	ParameterCodec runtime.ParameterCodec
 }
 
 func startLogsStream(client kubernetes.Interface, lss LogStreamSession, closeChan chan struct{}, pld *PodLogsData) error {
-	var lsm LogStreamMessage
+	for {
+		var lsm LogStreamMessage
 
-	err := lss.ws.ReadJSON(&lsm)
-	if err != nil {
-		defer close(closeChan)
-		if (logStreamSessions.Get(lss.id) == LogStreamSession{}) {
-			return io.EOF
-		}
-		return err
-	}
-
-	switch {
-	case lsm.Op == WSOpType.stdin && lss.id == lsm.SessionID:
-		if err := lss.SendLogs(client, pld); err != nil {
+		err := lss.ws.ReadJSON(&lsm)
+		if err != nil {
+			defer close(closeChan)
+			if (logStreamSessions.Get(lss.id) == LogStreamSession{}) {
+				return io.EOF
+			}
 			return err
 		}
-	case lsm.Op == WSOpType.close && lss.id == lsm.SessionID:
-		defer close(closeChan)
-		return nil
-	}
 
-	return nil
+		switch {
+		case lsm.Op == WSOpType.stdin && lss.id == lsm.SessionID:
+			if err := lss.SendLogs(client, pld); err != nil {
+				return err
+			}
+		case lsm.Op == WSOpType.close && lss.id == lsm.SessionID:
+			defer close(closeChan)
+			return nil
+		}
+	}
 }
 
 func (pld *PodLogsData) WaitForLogs(client kubernetes.Interface, sessionId string) {

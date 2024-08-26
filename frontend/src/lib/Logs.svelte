@@ -16,17 +16,17 @@
   const convert = new Convert({ newline: true });
 
   let isFetching: boolean;
-  let sessionId = "";
   let sock: WebSocket;
   let el: Element;
 
   onChangeLogsBtn.subscribe((c) => {
     if (c && !followLogs) {
-      sock?.close(WSCloseCode.warning, "Log tailing stopped");
-      alert = { message: "Log tailing stopped", type: "warning" };
+      sock?.readyState === WebSocket.OPEN &&
+        sock.send(JSON.stringify({ op: "close", sessionId }));
     }
   });
 
+  $: sessionId = "";
   $: $activeContainer && getLogsBasedOnContainer($activeContainer);
   $: alert = { message: null, type: null } as Alert;
   $: if (followLogs && $activeContainer) {
@@ -72,7 +72,7 @@
 
     sock.onopen = function () {
       isFetching = false;
-      const startData = { Op: "bind", SessionID: sessionId };
+      const startData = { op: "bind", sessionId };
       sock.send(JSON.stringify(startData));
     };
 
@@ -82,7 +82,7 @@
         sock.send(
           JSON.stringify({
             op: "stdin",
-            sessionId: sessionId,
+            sessionId,
           }),
         );
       } else if (resp.op === "close") {
@@ -113,13 +113,13 @@
 
     sock.onerror = function (e) {
       alert = { message: e.toString(), type: "error" };
-      sock?.readyState === WebSocket.OPEN && sock?.close(WSCloseCode.error);
+      sock?.readyState === WebSocket.OPEN && sock.close(WSCloseCode.error);
     };
   }
 
   onDestroy(() => {
     followLogs = false;
-    sock?.readyState === WebSocket.OPEN && sock?.close(WSCloseCode.info);
+    sock?.readyState === WebSocket.OPEN && sock.close();
   });
 </script>
 

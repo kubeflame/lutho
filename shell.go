@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -171,7 +171,7 @@ func handleTerminalSession(ws *websocket.Conn) {
 	}
 
 	if ts = terminalSessions.Get(tm.SessionID); ts.id == "" {
-		fmt.Printf("handleTerminalSession: can't find session '%s'\n", tm.SessionID)
+		ws.Close()
 		return
 	}
 
@@ -198,7 +198,7 @@ func startProcess(k8sClient kubernetes.Interface, cfg *rest.Config, ed *ExecData
 		Namespace(ed.PodNamespace).
 		SubResource("exec")
 
-	req.VersionedParams(&v1.PodExecOptions{
+	req.VersionedParams(&corev1.PodExecOptions{
 		Container: ed.ContainerName,
 		Command:   ed.Command,
 		Stdin:     true,
@@ -243,7 +243,7 @@ func (ed *ExecData) executeRemoteCommand(k8sClient kubernetes.Interface, cfg *re
 		Name(ed.PodName).
 		Namespace(ed.PodNamespace).
 		SubResource("exec").
-		VersionedParams(&v1.PodExecOptions{
+		VersionedParams(&corev1.PodExecOptions{
 			Container: ed.ContainerName,
 			Command:   command,
 			Stdin:     false,

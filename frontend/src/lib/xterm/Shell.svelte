@@ -62,7 +62,7 @@
       sock.send(
         JSON.stringify({
           op: "bind",
-          sessionId: sessionId,
+          sessionId,
         }),
       );
     };
