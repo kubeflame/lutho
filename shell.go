@@ -236,7 +236,7 @@ type ExecData struct {
 	remotecommand.TerminalSizeQueue
 }
 
-// execute a single command
+// execute a single command without attaching to a TTY
 func (ed *ExecData) executeRemoteCommand(k8sClient kubernetes.Interface, cfg *rest.Config, command []string) (string, error) {
 	request := k8sClient.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -249,7 +249,7 @@ func (ed *ExecData) executeRemoteCommand(k8sClient kubernetes.Interface, cfg *re
 			Stdin:     false,
 			Stdout:    true,
 			Stderr:    true,
-			TTY:       true,
+			TTY:       false,
 		}, scheme.ParameterCodec)
 	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", request.URL())
 	if err != nil {
@@ -281,14 +281,7 @@ func (ed *ExecData) WaitForTerminal(k8sClient kubernetes.Interface, cfg *rest.Co
 	case <-terminalSessions.Get(sessionId).bound:
 		close(terminalSessions.Get(sessionId).bound)
 
-		var err error
-		validShells := []string{"bash", "sh", "powershell", "cmd"}
-
-		if isValidShell(validShells, ed.Shell) {
-			ed.Command = []string{ed.Shell}
-			err = startProcess(k8sClient, cfg, ed, terminalSessions.Get(sessionId))
-		}
-
+		err := startProcess(k8sClient, cfg, ed, terminalSessions.Get(sessionId))
 		if err != nil {
 			terminalSessions.Close(sessionId, WSCloseCode.error, err.Error())
 			return

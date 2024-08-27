@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -157,24 +156,21 @@ func (ar *APIResource) ExecShell(c echo.Context) error {
 	ed.PodNamespace = c.QueryParam("namespace")
 	ed.ContainerName = c.QueryParam("container")
 
-	shells, err := ed.executeRemoteCommand(ar.Clientset, ar.Config,
-		[]string{"grep", "-E", "^/bin", "/etc/shells"})
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, APIResourceMessage{
-			Error:      err.Error(),
-			StatusCode: http.StatusInternalServerError,
-		})
-	}
-
-	for _, shell := range strings.Split(shells, "/\n") {
-		if strings.Contains(shell, "bash") {
-			ed.Command = []string{"bash"}
-			ed.Shell = "bash"
+	validShells := []string{"bash", "sh", "powershell", "cmd"}
+	for idx, shell := range validShells {
+		_, err := ed.executeRemoteCommand(ar.Clientset, ar.Config,
+			[]string{shell})
+		if err == nil && idx < len(validShells)-1 {
+			ed.Command = []string{shell}
+			ed.Shell = shell
 			break
-		} else {
-			ed.Command = []string{"sh"}
-			ed.Shell = "sh"
+		} else if err != nil && idx >= len(validShells)-1 {
+			return c.JSON(http.StatusInternalServerError, APIResourceMessage{
+				Error:      "No available shell to connect to",
+				StatusCode: http.StatusInternalServerError,
+			})
 		}
+
 	}
 
 	sessionID, err := genSessionId()
