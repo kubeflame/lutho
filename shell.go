@@ -24,7 +24,7 @@ type PtyHandler interface {
 	remotecommand.TerminalSizeQueue
 }
 
-// TerminalSession implements PtyHandler (using a SockJS connection)
+// TerminalSession implements PtyHandler (using a websocket connection)
 type TerminalSession struct {
 	id       string
 	bound    chan error
@@ -138,7 +138,7 @@ func (tsm *TerminalSessionMap) Set(sessionId string, session TerminalSession) {
 	tsm.Sessions[sessionId] = session
 }
 
-// Close shuts down the SockJS connection and sends the status code and reason to the client
+// Close shuts down the websocket connection and sends the status code and reason to the client
 // Can happen if the process exits or if there is an error starting up the process
 // For now the status code is unused and reason is shown to the user (unless "")
 func (tsm *TerminalSessionMap) Close(sessionId string, status uint, reason string) {
@@ -275,7 +275,7 @@ func (ed *ExecData) executeRemoteCommand(k8sClient kubernetes.Interface, cfg *re
 }
 
 // WaitForTerminal is called from apihandler.handleAttach as a goroutine
-// Waits for the SockJS connection to be opened by the client the session to be bound in handleTerminalSession
+// Waits for the websocket connection to be opened by the client the session to be bound in handleTerminalSession
 func (ed *ExecData) WaitForTerminal(k8sClient kubernetes.Interface, cfg *rest.Config, sessionId string) {
 	select {
 	case <-terminalSessions.Get(sessionId).bound:
