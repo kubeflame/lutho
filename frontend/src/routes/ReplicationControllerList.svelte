@@ -38,10 +38,6 @@
     }
   });
 
-  dataDelete.subscribe((err) => {
-    if (!err) $dataSend = [sendList];
-  });
-
   function onDelete(item: any) {
     $dataSend = [
       {
@@ -53,6 +49,10 @@
         },
       },
     ];
+
+    dataDelete.subscribe((err) => {
+      if (!err) $dataSend = [sendList];
+    });
   }
 </script>
 

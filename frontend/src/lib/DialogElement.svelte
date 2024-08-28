@@ -16,8 +16,8 @@
   on:close={() => (showDialog = false)}
 >
   <div
-    class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)]
-      max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
+    class="modal-box grid max-h-[calc(70vh)] max-w-[calc(50vw)] grid-cols-1 rounded-lg
+      border border-base-100 bg-base-200 p-2 outline outline-1 outline-base-200 drop-shadow-lg"
   >
     <div class="text-md mb-5 flex items-center gap-x-1">
       <SvgIcon
@@ -30,14 +30,15 @@
     <div class="modal-action">
       <form method="dialog">
         <button
-          class="btn btn-xs outline-base-100 hover:bg-error focus:outline-error outline
-            outline-1 drop-shadow-md focus:outline-1"
+          class="btn btn-xs outline outline-1 outline-base-100 drop-shadow-md
+            hover:bg-error focus:outline-1 focus:outline-error"
           on:click={dialogData.action}
         >
           {dialogData.type}
         </button>
         <button
-          class="btn btn-xs outline-base-100 hover:bg-error focus:outline-error outline outline-1 drop-shadow-md focus:outline-1"
+          class="btn btn-xs outline outline-1 outline-base-100 drop-shadow-md
+            hover:bg-error focus:outline-1 focus:outline-error"
           on:click={() => dialogElement.close()}
         >
           Close

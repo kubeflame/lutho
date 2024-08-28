@@ -371,7 +371,7 @@ export type EmbeddedOptionsData = {
 
 export type DialogData = {
   type?: string;
-  action?: any;
+  action?: () => void;
   classNames?: string;
   resourceName?: string;
   icon?: keyof typeof icons;

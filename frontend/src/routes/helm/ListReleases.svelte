@@ -34,10 +34,6 @@
     }
   });
 
-  dataDelete.subscribe((err) => {
-    if (!err) $dataSend = [sendList];
-  });
-
   function onDelete(release: Helm.Release) {
     $dataSend = [
       {
@@ -52,6 +48,10 @@
         },
       },
     ];
+
+    dataDelete.subscribe((err) => {
+      if (!err) $dataSend = [sendList];
+    });
   }
 </script>
 
@@ -60,7 +60,7 @@
     <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
   </ResourceToolbar>
   {#if helmReleaseListData}
-    <table class="table-pin-rows table">
+    <table class="table table-pin-rows">
       <thead>
         <tr class="bg-base-200 shadow-sm">
           <th>Name</th>

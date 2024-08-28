@@ -24,8 +24,8 @@
 />
 
 <div
-  class="dropdown dropdown-left dropdown-hover hover:bg-base-200 flex
-    h-full items-center space-x-2 rounded-lg p-1 {optClassNames}"
+  class="dropdown dropdown-left dropdown-hover flex h-full
+    items-center space-x-2 rounded-lg p-1 hover:bg-base-200 {optClassNames}"
 >
   <SvgIcon type={"elipsisVertical"} classNames={"size-4 h-full"} />
 
