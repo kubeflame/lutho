@@ -7,7 +7,6 @@
   import RouterPage from "../lib/RouterPage.svelte";
   import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
   import ListTable from "../lib/tables/ListTable.svelte";
-  import EmbeddedOptions from "../lib/tables/EmbeddedOptions.svelte";
 
   let namespaceListData: V1NamespaceList;
 
@@ -61,26 +60,17 @@
     isNamespaced={false}
     tableHead={["Name", "Created At", ""]}
     items={namespaceListData?.items}
-  >
-    <td
-      class="flex place-items-center items-center justify-end"
-      slot="embeddedOptions"
-      let:item
-    >
-      <EmbeddedOptions
-        embeddedOptionsData={[
-          {
-            fn: () => {},
-            dialog: {
-              action: () => onDelete(item),
-              type: "Delete",
-              resourceName: item.metadata?.name,
-            },
-            classes: "hover:btn-error",
-            icon: "trash",
-          },
-        ]}
-      />
-    </td>
-  </ListTable>
+    embeddedOptionsDataFn={(item) => [
+      {
+        fn: () => {},
+        dialog: {
+          action: () => onDelete(item),
+          type: "Delete",
+          resourceName: item.metadata?.name,
+        },
+        classes: "hover:btn-error",
+        icon: "trash",
+      },
+    ]}
+  />
 </RouterPage>

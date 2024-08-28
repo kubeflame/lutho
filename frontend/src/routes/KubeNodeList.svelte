@@ -7,7 +7,6 @@
   import RouterPage from "../lib/RouterPage.svelte";
   import ResourceToolbarBreadcrumbs from "../lib/ResourceToolbarBreadcrumbs.svelte";
   import ListTable from "../lib/tables/ListTable.svelte";
-  import EmbeddedOptions from "../lib/tables/EmbeddedOptions.svelte";
 
   let nodeListData: V1NodeList;
 
@@ -66,8 +65,10 @@
     isNamespaced={false}
     tableHead={["Name", "Created At", "Status", ""]}
     items={nodeListData?.items}
+    embeddedOptionsDataFn={() => []}
+    hasEmbeddedOptions={false}
   >
-    <!-- <div slot="nodeSchedule" let:item>
+    <div slot="nodeSchedule" let:item>
       {#if item.spec?.unschedulable}
         <span
           class="badge badge-ghost badge-outline badge-sm font-light tracking-wide"
@@ -79,25 +80,5 @@
     <td slot="nodeStatus" let:item>
       {getNodeStatus(item.status?.conditions ?? [])}
     </td>
-    <td
-      class="flex place-items-center items-center justify-end"
-      slot="embeddedOptions"
-      let:item
-    >
-      <EmbeddedOptions
-        embeddedOptionsData={[
-          {
-            fn: () => {},
-            dialog: {
-              action: () => onDelete(item),
-              type: "Delete",
-              resourceName: item.metadata?.name,
-            },
-            classes: "hover:btn-error",
-            icon: "trash",
-          },
-        ]}
-      />
-    </td> -->
   </ListTable>
 </RouterPage>
