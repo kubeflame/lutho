@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	v1 "k8s.io/api/authorization/v1"
+	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -95,11 +95,16 @@ func (dr *DeleteResource) Delete(client *dynamic.DynamicClient) error {
 	return client.Resource(dr.GVR).Namespace(dr.Namespace).Delete(context.TODO(), dr.Name, dr.Options)
 }
 
-type SelfSubjectAccessReviewResource struct {
+type SelfSubjectAuth struct {
 	Options metav1.CreateOptions
-	SSAR    *v1.SelfSubjectAccessReview
+	Access  *authv1.SelfSubjectAccessReview
+	Rules   *authv1.SelfSubjectRulesReview
 }
 
-func (arr *SelfSubjectAccessReviewResource) Review(client kubernetes.Interface) (*v1.SelfSubjectAccessReview, error) {
-	return client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), arr.SSAR, arr.Options)
+func (ssa *SelfSubjectAuth) AccessReview(client kubernetes.Interface) (*authv1.SelfSubjectAccessReview, error) {
+	return client.AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), ssa.Access, ssa.Options)
+}
+
+func (ssa *SelfSubjectAuth) RulesReview(client kubernetes.Interface) (*authv1.SelfSubjectRulesReview, error) {
+	return client.AuthorizationV1().SelfSubjectRulesReviews().Create(context.TODO(), ssa.Rules, ssa.Options)
 }

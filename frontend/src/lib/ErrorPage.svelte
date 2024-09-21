@@ -17,19 +17,19 @@
 </script>
 
 <div
-  class="error-page flex h-full flex-col items-center justify-center space-x-8 space-y-16 lg:flex-row lg:space-y-0 2xl:space-x-0"
+  class="error-page z-50 flex h-full flex-col items-center justify-center space-x-8 space-y-16 lg:flex-row lg:space-y-0 2xl:space-x-0"
   in:fade|global={{ duration: 250 }}
 >
   <div
     class="flex w-full flex-col items-center justify-center text-center lg:w-1/2 lg:px-2"
   >
     <p
-      class="text-error text-7xl font-bold tracking-wider drop-shadow-md md:text-8xl lg:text-9xl"
+      class="text-7xl font-bold tracking-wider text-error drop-shadow-md md:text-8xl lg:text-9xl"
     >
       {$statusCode ?? 503}
     </p>
     <p
-      class="text-error text-4xl font-bold tracking-wider drop-shadow-sm md:text-5xl lg:text-6xl"
+      class="text-4xl font-bold tracking-wider text-error drop-shadow-sm md:text-5xl lg:text-6xl"
     >
       {httpStatus[$statusCode] ?? "Service Unavailable"}
     </p>
@@ -41,7 +41,7 @@
       class="flex w-full flex-row items-center justify-center gap-4 text-center"
     >
       <button
-        class="btn btn-ghost bg-base-200 hover:bg-primary flex hover:drop-shadow-md"
+        class="btn btn-ghost flex bg-base-200 hover:bg-primary hover:drop-shadow-md"
         on:click={() => (errorMessage = "")}
       >
         <SvgIcon
@@ -52,7 +52,7 @@
         Close Error
       </button>
       <button
-        class="btn btn-ghost bg-base-200 hover:bg-primary flex hover:drop-shadow-md"
+        class="btn btn-ghost flex bg-base-200 hover:bg-primary hover:drop-shadow-md"
         on:click={() => window.location.reload()}
       >
         <SvgIcon
@@ -64,7 +64,7 @@
       </button>
       <a
         role="button"
-        class="btn btn-ghost bg-base-200 hover:bg-primary flex hover:drop-shadow-md {transitionEffects}"
+        class="btn btn-ghost flex bg-base-200 hover:bg-primary hover:drop-shadow-md {transitionEffects}"
         href="/"
         use:link
       >
@@ -78,7 +78,7 @@
     class="flex w-1/2 flex-col justify-center pb-20 pr-20 drop-shadow-md lg:h-full lg:items-end"
   >
     <svg
-      class="text-error w-full"
+      class="w-full text-error"
       xmlns="http://www.w3.org/2000/svg"
       data-name="Layer 1"
       viewBox="0 0 1119.60911 699"

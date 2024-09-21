@@ -73,6 +73,15 @@
     checkYamlForErrors(e.detail);
   }}
   on:ready={(e) => {
+    if ($docStore) {
+      e.detail.dispatch({
+        changes: {
+          from: 0,
+          to: e.detail.state.doc.length,
+          insert: $docStore,
+        },
+      });
+    }
     view = e.detail;
   }}
   class="codemirror flex h-full transform !pr-2 {transitionEffects}"

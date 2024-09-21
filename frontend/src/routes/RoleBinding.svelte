@@ -87,7 +87,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged
@@ -144,17 +144,17 @@
             {#each roleBindingData.subjects as subject}
               <tr>
                 <td
-                  class="border-base-300 bg-base-200/10 max-h-fit max-w-fit rounded-lg border px-1 font-mono text-sm"
+                  class="max-h-fit max-w-fit rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
                 >
                   {subject.kind}
                 </td>
                 <td
-                  class="border-base-300 bg-base-200/10 max-h-fit max-w-fit rounded-lg border px-1 font-mono text-sm"
+                  class="max-h-fit max-w-fit rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
                 >
                   {subject.name}
                 </td>
                 <td
-                  class="border-base-300 bg-base-200/10 max-h-fit max-w-fit rounded-lg border px-1 font-mono text-sm"
+                  class="max-h-fit max-w-fit rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
                 >
                   {subject.namespace}
                 </td>

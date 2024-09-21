@@ -2,13 +2,18 @@
   import { fade } from "svelte/transition";
   import ErrorPage from "./ErrorPage.svelte";
   import LoadingNewton from "./LoadingNewton.svelte";
-  import { kubeHost, sidebarState, statusCode } from "./stores";
+  import {
+    kubeHost,
+    defaultAccessReview,
+    sidebarState,
+    statusCode,
+  } from "./stores";
   import { apiURL, routeString, transitionEffects } from "./util";
   import { onMount } from "svelte";
   import type { AuthResponse } from "./types";
   import { push } from "svelte-spa-router";
 
-  export let error: string;
+  export let errorMessage: string;
   export let loading: boolean;
 
   onMount(async function () {
@@ -17,13 +22,15 @@
         return resp.json();
       })
       .then((data: AuthResponse) => {
+        errorMessage = data.error;
         $kubeHost = data.kubeHost;
+        $defaultAccessReview = data.accessReview;
         if (!data.state)
           push(`${routeString.auth}?referrer=${window.location.hash}`);
       })
-      .catch((error) => {
+      .catch((err) => {
         $statusCode = 503;
-        error = error;
+        errorMessage = err;
         $kubeHost = "";
       });
   });
@@ -40,8 +47,8 @@
     in:fade
     class="router-page relative m-4 h-[calc(100%-104px)] overflow-y-scroll rounded-md shadow-md"
   >
-    {#if error}
-      <ErrorPage bind:errorMessage={error} />
+    {#if errorMessage}
+      <ErrorPage bind:errorMessage />
     {:else if loading}
       <LoadingNewton />
     {:else}

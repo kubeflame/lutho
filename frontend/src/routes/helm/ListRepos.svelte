@@ -15,7 +15,6 @@
   import socketStore from "../../lib/socketStore";
   import BottomAlert from "../../lib/BottomAlert.svelte";
   import { updatingRepos } from "../../lib/stores";
-  import DialogElement from "../../lib/DialogElement.svelte";
 
   export let tabQueryParam: TabQueryParam;
 
@@ -26,7 +25,7 @@
 
   const { sockError, isLoading, dataSend, dataGet } = socketStore();
 
-  let error: string = "";
+  let errorMessage: string = "";
   let loading: boolean = false;
   let newRepoDialog: HTMLDialogElement;
   let repoName: string = "";
@@ -164,18 +163,18 @@
   }
 </script>
 
-<RouterPage bind:error bind:loading>
+<RouterPage bind:errorMessage bind:loading>
   <ResourceToolbar slot="resource-toolbar" bind:tabQueryParam>
     <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
     <div class="mr-4 flex place-items-center space-x-2" slot="custom">
       <button
-        class="btn btn-xs bg-base-100 outline-primary hover:btn-primary text-sm outline outline-1 drop-shadow-md"
+        class="btn btn-xs bg-base-100 text-sm outline outline-1 outline-primary drop-shadow-md hover:btn-primary"
         on:click={() => newRepoDialog.showModal()}
       >
         New
       </button>
       <button
-        class="btn btn-xs bg-base-100 outline-info hover:btn-info text-sm outline outline-1 drop-shadow-md"
+        class="btn btn-xs bg-base-100 text-sm outline outline-1 outline-info drop-shadow-md hover:btn-info"
         on:click={updateAll}
       >
         Update All
@@ -185,7 +184,7 @@
 
   <dialog bind:this={newRepoDialog} class="modal modal-middle">
     <div
-      class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)] max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
+      class="modal-box grid max-h-[calc(70vh)] max-w-[calc(50vw)] grid-cols-1 rounded-lg border border-base-100 bg-base-200 p-2 outline outline-1 outline-base-200 drop-shadow-lg"
     >
       <div class="mb-5 flex items-center gap-x-1 text-sm">
         <SvgIcon
@@ -200,7 +199,7 @@
         <div class="join h-6 w-full items-center gap-x-0.5">
           <label
             for="registry-type"
-            class="join-item bg-base-300 flex h-full w-fit items-center p-1 pl-2 pr-2 text-sm font-normal"
+            class="join-item flex h-full w-fit items-center bg-base-300 p-1 pl-2 pr-2 text-sm font-normal"
           >
             Registry Type
           </label>
@@ -237,7 +236,7 @@
         <div class="join h-6 w-full items-center">
           <label
             for="repo-name-input"
-            class="join-item bg-base-300 h-full w-14 p-0.5 pl-2 pr-2 text-sm font-normal"
+            class="join-item h-full w-14 bg-base-300 p-0.5 pl-2 pr-2 text-sm font-normal"
           >
             Name
           </label>
@@ -245,7 +244,7 @@
             id="repo-name-input"
             bind:value={repoName}
             type="text"
-            class="input input-xs join-item input-bordered bg-base-100 flex grow focus:outline-0
+            class="input input-xs join-item input-bordered flex grow bg-base-100 focus:outline-0
               {isErrorRepoName ? errorClasses : normalClasses}"
             on:input={() => {
               isErrorRepoName = false;
@@ -256,7 +255,7 @@
         <div class="join h-6 w-full items-center">
           <label
             for="repo-url-input"
-            class="join-item bg-base-300 h-full w-14 p-0.5 pl-2 pr-2 text-sm font-normal"
+            class="join-item h-full w-14 bg-base-300 p-0.5 pl-2 pr-2 text-sm font-normal"
           >
             URL
           </label>
@@ -264,7 +263,7 @@
             id="repo-url-input"
             bind:value={repoURL}
             type="text"
-            class="input input-xs join-item input-bordered bg-base-100 flex grow focus:outline-0
+            class="input input-xs join-item input-bordered flex grow bg-base-100 focus:outline-0
               {isErrorRepoURL ? errorClasses : normalClasses}"
             on:input={() => {
               isErrorRepoURL = false;
@@ -275,14 +274,14 @@
       </div>
       <div class="modal-action">
         <button
-          class="btn btn-xs outline-success hover:bg-success focus:outline-success place-self-end outline outline-1 !drop-shadow-md focus:outline-1"
+          class="btn btn-xs place-self-end outline outline-1 outline-success !drop-shadow-md hover:bg-success focus:outline-1 focus:outline-success"
           on:click={() => newRepo(repoName)}
           disabled={alert.message ? true : false}
         >
           Add
         </button>
         <button
-          class="btn btn-xs outline-error hover:bg-error focus:outline-error place-self-end outline outline-1 drop-shadow-md focus:outline-1"
+          class="btn btn-xs place-self-end outline outline-1 outline-error drop-shadow-md hover:bg-error focus:outline-1 focus:outline-error"
           on:click={() => closeNewRepoDialog()}
         >
           Close
@@ -293,7 +292,7 @@
     </div>
   </dialog>
 
-  <table class="table-pin-rows table">
+  <table class="table table-pin-rows">
     <thead>
       <tr class="bg-base-200 shadow-sm">
         <th>Name</th>

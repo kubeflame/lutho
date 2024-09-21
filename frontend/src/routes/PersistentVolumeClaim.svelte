@@ -67,6 +67,7 @@
     type: "list",
     request: {
       name: params.name,
+      namespace: params.namespace,
       kubeGVRK: EventV1GVRK,
       kubeOptions: {
         fieldSelector: parseFieldSelector({
@@ -133,7 +134,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged

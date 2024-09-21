@@ -15,19 +15,20 @@
   const fontLogo = "font-mono font-thin tracking-wider";
 
   let connectionDialog: HTMLDialogElement;
+  let onOpen: () => void;
 
   $: headerUtilsStyle = $kubeHost
     ? "border-base-300 bg-base-100 text-center"
     : "text-base-content/55 border-error bg-base-200 text-center";
 </script>
 
-<ClusterConnection bind:dialog={connectionDialog} />
+<ClusterConnection bind:dialog={connectionDialog} bind:onOpen />
 
 <Utils />
 
 <div
-  class="header-content no-scrollbar {headerContentClassName} bg-base-200
-    flex h-10 items-center justify-center p-1"
+  class="header-content no-scrollbar {headerContentClassName} flex
+    h-10 items-center justify-center bg-base-200 p-1"
 >
   <NavControl />
 
@@ -55,8 +56,8 @@
     {/if}
 
     <button
-      class="btn-xs bg-base-100 border-base-300 hover:bg-primary flex
-        !h-full items-center rounded-xl border p-3 shadow-sm"
+      class="btn-xs flex !h-full items-center rounded-xl
+        border border-base-300 bg-base-100 p-3 shadow-sm hover:bg-primary"
       on:click={() => ($showUtils = !$showUtils)}
     >
       <SvgIcon type={"util"} classNames={"size-5"} />
@@ -67,9 +68,12 @@
         rounded-xl font-mono text-sm font-thin tracking-wide shadow-sm"
     >
       <button
-        class="btn join-item btn-xs bg-base-100 hover:bg-primary
-          flex h-full min-w-fit max-w-fit {headerUtilsStyle}"
-        on:click={() => connectionDialog.showModal()}
+        class="btn join-item btn-xs flex h-full min-w-fit max-w-fit
+          bg-base-100 hover:bg-primary {headerUtilsStyle}"
+        on:click={() => {
+          connectionDialog.showModal();
+          onOpen();
+        }}
       >
         <SvgIcon
           type={$kubeHost ? "cloudOn" : "cloudOff"}
@@ -82,7 +86,8 @@
       <div
         id="cluster-connection"
         class="dropdown dropdown-hover join-item relative flex h-full max-w-32
-          content-center items-center border px-2 lg:max-w-md xl:max-w-lg {headerUtilsStyle}"
+          content-center items-center border px-2 lg:max-w-md xl:max-w-lg
+          {headerUtilsStyle}"
       >
         <span class="overflow-hidden text-ellipsis">
           {$kubeHost || "not connected"}

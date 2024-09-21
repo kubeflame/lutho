@@ -6,7 +6,7 @@ import {
   type SockState,
 } from "./types";
 import { apiURL, httpStatus, WSCloseCode } from "./util";
-import { onDestroy, onMount } from "svelte";
+import { onDestroy } from "svelte";
 import { statusCode } from "./stores";
 
 async function getSessionID(
@@ -68,6 +68,18 @@ function sockConnection(
       isLoading.set(false);
     } else if (resp.op.type === "bind") {
       sockState.set({ state: sock.readyState, bound: true });
+    } else if (resp.op.type === "accessReview") {
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
+      isLoading.set(false);
+    } else if (resp.op.type === "rulesReview") {
+      dataGet.set({
+        op: resp.op,
+        data: JSON.parse(resp.data),
+      });
+      isLoading.set(false);
     } else if (resp.op.type === "list") {
       dataList.set({
         op: resp.op,
@@ -144,16 +156,16 @@ function sockConnection(
   };
 
   sock.onerror = function (e: Event) {
-    sockError.set(e.toString());
     sock.close(WSCloseCode.error);
     isLoading.set(false);
   };
 
   sock.onclose = (ce: CloseEvent) => {
     if (!ce.wasClean) {
-      sockError.set(ce.reason);
+      ce.reason && sockError.set(ce.reason);
     }
     isLoading.set(false);
+    sockState.set({ state: WebSocket.CLOSED, bound: false });
   };
 
   return sock;
@@ -170,24 +182,25 @@ export default function createSocketStore() {
   const dataUpdate = writable<any>();
   const dataDelete = writable<any>();
 
-  let sock: WebSocket;
-
-  onMount(() => {
-    sock = sockConnection(
-      isLoading,
-      sockState,
-      sockError,
-      sessionId,
-      dataList,
-      dataGet,
-      dataUpdate,
-      dataDelete,
-    );
-  });
+  let sock = sockConnection(
+    isLoading,
+    sockState,
+    sockError,
+    sessionId,
+    dataList,
+    dataGet,
+    dataUpdate,
+    dataDelete,
+  );
 
   sockState.subscribe((s) => {
     dataSend.subscribe((data) => {
-      if (s.state === WebSocket.CLOSED && data && s.refresh && !s.bound) {
+      if (
+        sock?.readyState === WebSocket.CLOSED &&
+        data &&
+        s.refresh &&
+        !s.bound
+      ) {
         sock = sockConnection(
           isLoading,
           sockState,
@@ -199,7 +212,7 @@ export default function createSocketStore() {
           dataDelete,
         );
         s.refresh = false;
-      } else if (s.state === WebSocket.OPEN && s.bound && data) {
+      } else if (sock?.readyState === WebSocket.OPEN && s.bound && data) {
         isLoading.set(true);
         data.forEach((item) => {
           sock.send(

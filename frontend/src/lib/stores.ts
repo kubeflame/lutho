@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import type { SettingsData, SidebarState } from "./types";
+import type { V1SelfSubjectAccessReview } from "@kubernetes/client-node";
 
 export const namespace = writable<string>(
   localStorage.getItem("namespace") ?? "default",
@@ -24,5 +25,6 @@ export const submitYamlChanges = writable<boolean>(false);
 export const statusCode = writable<number>();
 
 export const kubeHost = writable<string>("");
+export const defaultAccessReview = writable<V1SelfSubjectAccessReview>();
 
 export const updatingRepos = writable<{ [key: string]: boolean }>({});

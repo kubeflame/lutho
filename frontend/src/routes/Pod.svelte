@@ -15,7 +15,6 @@
   import Events from "../lib/Events.svelte";
   import Details from "../lib/Details.svelte";
   import type {
-    CoreV1EventList,
     V1Container,
     V1ContainerPort,
     V1Pod,
@@ -83,6 +82,7 @@
     type: "list",
     request: {
       name: params.name,
+      namespace: params.namespace,
       kubeGVRK: EventV1GVRK,
       kubeOptions: {
         fieldSelector: parseFieldSelector({
@@ -119,12 +119,6 @@
     if (ds && $sockState.state === WebSocket.CLOSED) $sockState.refresh = true;
   });
 
-  dataUpdate.subscribe((du) => {
-    if (du && du.op?.opID === sendUpdate.opID) {
-      podData = du.data;
-    }
-  });
-
   function getContainers(containers: V1Container[]): string[] {
     return containers.map((c) => {
       return c.name;
@@ -153,6 +147,12 @@
         },
       },
     ];
+
+    dataUpdate.subscribe((du) => {
+      if (du && du.op?.opID === sendUpdate.opID) {
+        podData = du.data;
+      }
+    });
   }
 </script>
 
@@ -167,7 +167,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged
@@ -451,7 +451,7 @@
                         <td>
                           {#if env.valueFrom}
                             <div
-                              class="border-base-300 bg-base-200/10 max-h-fit max-w-fit rounded-lg border px-1 font-mono text-sm"
+                              class="max-h-fit max-w-fit rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
                             >
                               {JSON.stringify(env.valueFrom, null, 2)}
                             </div>

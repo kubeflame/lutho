@@ -33,11 +33,12 @@
           {#if !item.hidden}
             <tr>
               <td
-                class="text-base-content flex items-center whitespace-nowrap pr-4 font-mono font-medium tracking-wide"
+                class="flex items-center whitespace-nowrap pr-4 font-mono
+                  font-medium tracking-wide text-base-content"
               >
                 {item.name}
               </td>
-              <td class="text-base-content/70 text-left">
+              <td class="text-left text-base-content/70">
                 {item.value}
               </td>
             </tr>
@@ -47,7 +48,7 @@
     </table>
   {:else if tableType === "one_row" && tableItems && tableItems.length > 0}
     <CaptionTag {tagName} />
-    <table class="table-sm table">
+    <table class="table table-sm">
       <thead>
         <tr>
           {#each tableItems as el}
@@ -63,10 +64,10 @@
     </table>
   {:else if tableType === "badges" && tableItems.length > 0}
     <CaptionTag {tagName} />
-    <table class="table-sm table">
+    <table class="table table-sm">
       {#each tableItems as label}
         <div
-          class="badge badge-ghost bg-base-200 text-base-content/70 mx-1 my-3"
+          class="badge badge-ghost mx-1 my-3 bg-base-200 text-base-content/70"
         >
           {label.name}: {label.value}
         </div>
@@ -74,7 +75,7 @@
     </table>
   {:else if tableType === "custom-body" && tableItems.length > 0}
     <CaptionTag {tagName} />
-    <table class="table-sm table">
+    <table class="table table-sm">
       <thead>
         <tr class="">
           {#each tableItems as item}
@@ -86,11 +87,11 @@
     </table>
   {:else if tableType === "custom-vertical" && tableItems.length > 0}
     <CaptionTag {tagName} />
-    <table class="table-sm table">
+    <table class="table table-sm">
       <tbody>
         {#each tableItems as item}
           {#if item.value}
-            <tr class="hover:bg-base-200/40 rounded-xl">
+            <tr class="rounded-xl hover:bg-base-200/40">
               <thead>
                 <th>{item.name}</th>
               </thead>

@@ -77,6 +77,7 @@
     type: "list",
     request: {
       name: params.name,
+      namespace: params.namespace,
       kubeGVRK: EventV1GVRK,
       kubeOptions: {
         fieldSelector: parseFieldSelector({
@@ -148,7 +149,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged
@@ -229,8 +230,8 @@
     />
     <dialog bind:this={chartRefDialog} class="modal modal-middle">
       <div
-        class="modal-box border-base-100 bg-base-200 outline-base-200 grid max-h-[calc(70vh)]
-          max-w-[calc(50vw)] grid-cols-1 rounded-lg border p-2 outline outline-1 drop-shadow-lg"
+        class="modal-box grid max-h-[calc(70vh)] max-w-[calc(50vw)] grid-cols-1 rounded-lg
+          border border-base-100 bg-base-200 p-2 outline outline-1 outline-base-200 drop-shadow-lg"
       >
         <div class="mb-5 flex items-center gap-x-1 text-sm">
           <SvgIcon classNames={"h-5 w-5"} strokeWidth={1.5} type={"update"} />
@@ -241,7 +242,7 @@
           <div class="join h-6 w-full items-center">
             <label
               for="chart-name-input"
-              class="join-item bg-base-300 h-full w-fit p-0.5 pl-2 pr-2 text-sm font-normal"
+              class="join-item h-full w-fit bg-base-300 p-0.5 pl-2 pr-2 text-sm font-normal"
             >
               Chart Name
             </label>
@@ -249,14 +250,14 @@
               id="chart-name-input"
               bind:value={chartName}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 text-base-300
-                flex grow focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow
+                bg-base-100 text-base-300 focus:outline-0"
             />
           </div>
           <div class="join h-6 w-full items-center">
             <label
               for="chart-url-input"
-              class="join-item bg-base-300 h-full w-fit p-0.5 pl-2 pr-2 text-sm font-normal"
+              class="join-item h-full w-fit bg-base-300 p-0.5 pl-2 pr-2 text-sm font-normal"
             >
               Chart URL
             </label>
@@ -264,14 +265,14 @@
               id="chart-url-input"
               bind:value={chartURL}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 text-base-300
-                flex grow focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow
+                bg-base-100 text-base-300 focus:outline-0"
             />
           </div>
           <div class="join h-6 w-full items-center">
             <label
               for="chart-version-input"
-              class="join-item bg-base-300 h-full w-fit p-0.5 pl-2 pr-2 text-sm font-normal"
+              class="join-item h-full w-fit bg-base-300 p-0.5 pl-2 pr-2 text-sm font-normal"
             >
               Chart Version
             </label>
@@ -279,15 +280,15 @@
               id="chart-version-input"
               bind:value={chartVersion}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 flex grow focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow bg-base-100 focus:outline-0"
             />
           </div>
         </div>
 
         <div class="modal-action">
           <button
-            class="btn btn-xs outline-success hover:bg-success focus:outline-success place-self-end
-              outline outline-1 drop-shadow-md focus:outline-1"
+            class="btn btn-xs place-self-end outline outline-1 outline-success
+              drop-shadow-md hover:bg-success focus:outline-1 focus:outline-success"
             on:click={() => {
               upgradeRelease();
               chartRefDialog.close();
@@ -296,8 +297,8 @@
             Upgrade
           </button>
           <button
-            class="btn btn-xs outline-error hover:bg-error focus:outline-error place-self-end
-              outline outline-1 drop-shadow-md focus:outline-1"
+            class="btn btn-xs place-self-end outline outline-1 outline-error
+              drop-shadow-md hover:bg-error focus:outline-1 focus:outline-error"
             on:click={() => chartRefDialog.close()}
           >
             Close

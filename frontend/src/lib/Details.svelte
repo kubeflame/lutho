@@ -4,15 +4,16 @@
 
   export let title: string;
   export let contentClassNames: string = "";
+  export let collapseChecked: boolean = true;
 </script>
 
 <div class="mx-1 mb-4 mt-2">
-  <div class="collapse-plus collapse rounded-lg shadow-md {transitionEffects}">
-    <input type="checkbox" class="peer h-8" checked />
+  <div class="collapse collapse-plus rounded-lg shadow-md {transitionEffects}">
+    <input type="checkbox" class="peer h-8" checked={collapseChecked} />
 
     <div
-      class="collapse-title text-base-content/80 bg-base-200 flex h-8 !items-center rounded-t-lg
-        pl-3 font-mono text-sm font-light tracking-wide after:!right-4 after:!top-1.5"
+      class="collapse-title flex h-8 !items-center rounded-t-lg bg-base-200 pl-3
+        font-mono text-sm font-light tracking-wide text-base-content/80 after:!right-4 after:!top-1.5"
     >
       <SvgIcon type={"info"} />
       <p class="ml-2 flex items-center">{title}</p>

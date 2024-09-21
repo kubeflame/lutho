@@ -23,6 +23,14 @@
     if (c && !followLogs) {
       sock?.readyState === WebSocket.OPEN &&
         sock.send(JSON.stringify({ op: "close", sessionId }));
+      el?.insertAdjacentHTML(
+        "beforeend",
+        "<div class='divider text-warning'>   ** Log tailing stopped **   </div>",
+      );
+      el?.scroll({
+        top: el.scrollHeight,
+        behavior: "auto",
+      });
     }
   });
 
@@ -87,7 +95,7 @@
         );
       } else if (resp.op === "close") {
         if (resp.statusCode === WSCloseCode.info) {
-          alert = { message: resp.data, type: "info" };
+          alert = { message: resp.data, type: "info", timeout: 5 };
         } else if (
           resp.statusCode === WSCloseCode.warning &&
           resp.data === "EOF"

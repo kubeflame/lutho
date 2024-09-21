@@ -252,7 +252,8 @@ export type KubeDataStreamMessage = {
 export type KubeOp = {
   type:
     | "bind"
-    | "selfSubjectAccessReview"
+    | "accessReview"
+    | "rulesReview"
     | "list"
     | "listAll"
     | "helmShowValues"
@@ -285,9 +286,10 @@ export type KubeGVRK = {
 };
 
 export type Alert = {
-  type: "info" | "warning" | "error" | null;
+  type: "info" | "success" | "warning" | "error" | null;
   message: string | null;
   className?: string;
+  timeout?: number | null;
 };
 
 export type TabItem = {
@@ -377,6 +379,8 @@ export type DialogData = {
   icon?: keyof typeof icons;
   message?: string;
 };
+
+export type DialogStep = "action" | "afterAction";
 
 export type EmbeddedTableItem = {
   name: string;

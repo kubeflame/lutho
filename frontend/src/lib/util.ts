@@ -204,6 +204,14 @@ export const SelfSubjectAccessReviewV1GVRK: KubeGVRK = {
   isNamespaced: false,
 };
 
+export const SelfSubjectRulesReviewV1GVRK: KubeGVRK = {
+  group: "authorization.k8s.io",
+  version: "v1",
+  resource: "selfsubjectrulesreviews",
+  kind: "SelfSubjectRulesReview",
+  isNamespaced: false,
+};
+
 export const NamespaceV1GVRK: KubeGVRK = {
   group: "",
   version: "v1",
@@ -486,4 +494,15 @@ export function parseFieldSelector(selector: KubeFieldSelector): string {
 
 export function randomUUID(): string {
   return self.crypto.randomUUID();
+}
+
+export function sleep(
+  s: number,
+  throwOnTimeout = false,
+  reason = "Timeout",
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (throwOnTimeout) setTimeout(() => reject(reason), s * 1000);
+    else setTimeout(resolve, s * 1000);
+  });
 }

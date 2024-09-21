@@ -87,7 +87,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged
@@ -184,7 +184,7 @@
         tableItems={[]}
       >
         <div
-          class="border-base-300 bg-base-200/10 whitespace-pre rounded-lg border px-1 font-mono text-sm"
+          class="whitespace-pre rounded-lg border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
         >
           {eventData?.message}
         </div>

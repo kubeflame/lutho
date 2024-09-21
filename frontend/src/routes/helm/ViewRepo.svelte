@@ -16,7 +16,7 @@
   const { sockError, isLoading, dataSend, dataGet, dataUpdate } = socketStore();
 
   let tabQueryParam: TabQueryParam;
-  let error: string = "";
+  let errorMessage: string = "";
   let loading: boolean = false;
   let repoInput: string = "";
   let repoChartData: any;
@@ -64,7 +64,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error bind:loading>
+<RouterPage bind:errorMessage bind:loading>
   <ResourceToolbar slot="resource-toolbar" bind:tabQueryParam>
     <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
   </ResourceToolbar>

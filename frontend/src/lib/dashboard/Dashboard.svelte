@@ -183,7 +183,7 @@
   });
 </script>
 
-<RouterPage bind:error={$sockError} loading={false}>
+<RouterPage bind:errorMessage={$sockError} loading={false}>
   <ResourceToolbar slot="resource-toolbar" />
   <div class="grid grid-flow-row grid-cols-3 gap-x-1 gap-y-2">
     <Stats

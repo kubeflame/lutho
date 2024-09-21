@@ -114,7 +114,7 @@
   }
 </script>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar slot="resource-toolbar" bind:tabQueryParam>
     <div
       slot="custom"
@@ -124,8 +124,8 @@
       {#if tabQueryParam === "search"}
         <button
           on:click={() => (showFilter = !showFilter)}
-          class="btn btn-sm tooltip tooltip-right tooltip-primary bg-base-100 hover:bg-base-200
-          place-items-center items-center rounded-bl-2xl rounded-tl-none pl-5 font-medium"
+          class="btn btn-sm tooltip tooltip-right tooltip-primary place-items-center items-center
+            rounded-bl-2xl rounded-tl-none bg-base-100 pl-5 font-medium hover:bg-base-200"
           data-tip="more filters"
         >
           <SvgIcon classNames={svgIconClassNames} type={"filter"} />
@@ -134,15 +134,15 @@
         <div class="join min-w-fit items-center text-sm" in:scale>
           <label
             for="resource-select"
-            class="join-item bg-base-200 min-w-fit p-0.5 pl-2 pr-2 font-normal"
+            class="join-item min-w-fit bg-base-200 p-0.5 pl-2 pr-2 font-normal"
           >
             Resource Type
           </label>
           <select
             bind:value={resourceType}
             id="resource-select"
-            class="join-item select select-bordered select-xs bg-base-100 focus:border-primary/60
-            rounded-lg pl-4 text-sm font-normal focus:outline-0"
+            class="join-item select select-bordered select-xs rounded-lg bg-base-100
+              pl-4 text-sm font-normal focus:border-primary/60 focus:outline-0"
           >
             <option selected disabled value="">Choose a resource</option>
             {#each kubeResourceTypeList as resource}
@@ -154,7 +154,7 @@
         <div class="join w-full items-center text-sm" in:scale>
           <label
             for="name-input"
-            class="join-item bg-base-200 min-w-fit p-0.5 pl-2 pr-2 font-normal"
+            class="join-item min-w-fit bg-base-200 p-0.5 pl-2 pr-2 font-normal"
           >
             Name
           </label>
@@ -162,8 +162,8 @@
             id="name-input"
             bind:value={nameInput}
             type="text"
-            class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-            flex grow text-sm focus:outline-0"
+            class="input input-xs join-item input-bordered flex grow
+              bg-base-100 text-sm focus:border-primary/60 focus:outline-0"
           />
         </div>
 
@@ -171,7 +171,7 @@
           <div class="join w-full items-center text-sm" in:scale>
             <label
               for="namespace-input"
-              class="join-item bg-base-200 min-w-fit p-0.5 pl-2 pr-2 font-normal"
+              class="join-item min-w-fit bg-base-200 p-0.5 pl-2 pr-2 font-normal"
             >
               Namespace
             </label>
@@ -179,8 +179,8 @@
               id="namespace-input"
               bind:value={namespaceInput}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-            flex grow text-sm focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow
+                bg-base-100 text-sm focus:border-primary/60 focus:outline-0"
             />
           </div>
         {/if}
@@ -189,7 +189,7 @@
           <div class="join w-full items-center text-sm" in:scale>
             <label
               for="field-input"
-              class="join-item bg-base-200 min-w-fit p-0.5 pl-2 pr-2 font-normal"
+              class="join-item min-w-fit bg-base-200 p-0.5 pl-2 pr-2 font-normal"
             >
               Field Selector
             </label>
@@ -197,15 +197,15 @@
               id="field-input"
               bind:value={fieldInput}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-              flex grow text-sm focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow
+                bg-base-100 text-sm focus:border-primary/60 focus:outline-0"
             />
           </div>
 
           <div class="join h-6 w-full items-center text-sm" in:scale>
             <label
               for="label-input"
-              class="join-item bg-base-200 min-w-fit p-0.5 pl-2 pr-2 font-normal"
+              class="join-item min-w-fit bg-base-200 p-0.5 pl-2 pr-2 font-normal"
             >
               Label Selector
             </label>
@@ -213,16 +213,16 @@
               id="label-input"
               bind:value={labelInput}
               type="text"
-              class="input input-xs join-item input-bordered bg-base-100 focus:border-primary/60
-              flex grow text-sm focus:outline-0"
+              class="input input-xs join-item input-bordered flex grow
+                bg-base-100 text-sm focus:border-primary/60 focus:outline-0"
             />
           </div>
         {/if}
 
         <button
           disabled={resourceType ? false : true}
-          class="btn btn-sm bg-base-100 hover:bg-base-200 place-items-center
-          items-center rounded-br-2xl rounded-tr-none pr-5"
+          class="btn btn-sm place-items-center items-center rounded-br-2xl
+            rounded-tr-none bg-base-100 pr-5 hover:bg-base-200"
           on:click={onSearch}
         >
           <SvgIcon classNames={svgIconClassNames} type={"arrowRight"} />
@@ -232,7 +232,7 @@
   </ResourceToolbar>
 
   {#if searchDataResponse}
-    <table class="table-pin-rows table">
+    <table class="table table-pin-rows">
       <thead>
         <tr class="bg-base-200 shadow-sm">
           <th>Name</th>

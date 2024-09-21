@@ -10,11 +10,13 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/release"
+	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 )
@@ -70,6 +72,48 @@ type DataStream struct {
 	client  *dynamic.DynamicClient
 	recvMsg DataStreamMessage
 	helm    *Helm
+}
+
+func (ds DataStream) selfSubjectAccessReview(client kubernetes.Interface) ([]byte, error) {
+	var ssa SelfSubjectAuth
+
+	if err := json.Unmarshal([]byte(ds.recvMsg.Op.Request.Data), &ssa.Access); err != nil {
+		return nil, err
+	}
+
+	review, err := ssa.AccessReview(client)
+	if err != nil {
+		return nil, err
+	}
+
+	dataBytes, err := json.Marshal(&review)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataBytes, nil
+}
+
+func (ds DataStream) selfSubjectRulesReview(client kubernetes.Interface) ([]byte, error) {
+	var ssa SelfSubjectAuth
+
+	ssa.Rules = &authv1.SelfSubjectRulesReview{
+		Spec: authv1.SelfSubjectRulesReviewSpec{
+			Namespace: ds.recvMsg.Op.Request.Namespace,
+		},
+	}
+
+	rules, rerr := ssa.RulesReview(client)
+	if rerr != nil {
+		return nil, rerr
+	}
+
+	dataBytes, err := json.Marshal(&rules)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataBytes, nil
 }
 
 func (ds DataStream) kubeList() ([]byte, unstructured.UnstructuredList, error) {
@@ -396,6 +440,56 @@ func (ds DataStream) helmUninstall(config *rest.Config) (*release.UninstallRelea
 	}
 
 	return urr, nil
+}
+
+func (dss DataStreamSession) AccessReview(recvMsg DataStreamMessage, client *kubernetes.Clientset) error {
+	var ds DataStream
+	ds.recvMsg = recvMsg
+
+	dsm := DataStreamMessage{
+		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
+			Type: WSOpType.accessReview,
+		},
+	}
+
+	data, err := ds.selfSubjectAccessReview(client)
+	if err != nil {
+		dsm.Error = err.Error()
+	}
+
+	dsm.Data = string(data)
+
+	if err := dss.ws.WriteJSON(dsm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dss DataStreamSession) RulesReview(recvMsg DataStreamMessage, client *kubernetes.Clientset) error {
+	var ds DataStream
+	ds.recvMsg = recvMsg
+
+	dsm := DataStreamMessage{
+		Op: DataStreamOp{
+			OpID: recvMsg.Op.OpID,
+			Type: WSOpType.rulesReview,
+		},
+	}
+
+	data, err := ds.selfSubjectRulesReview(client)
+	if err != nil {
+		dsm.Error = err.Error()
+	}
+
+	dsm.Data = string(data)
+
+	if err := dss.ws.WriteJSON(dsm); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (dss DataStreamSession) List(recvMsg DataStreamMessage, client *dynamic.DynamicClient) error {
@@ -802,6 +896,14 @@ func startDataStream(ar *APIResource, dss DataStreamSession, closeChan chan stru
 		}
 
 		switch {
+		case dsm.Op.Type == WSOpType.accessReview && dss.id == dsm.SessionID:
+			if err := dss.AccessReview(dsm, ar.Clientset); err != nil {
+				return err
+			}
+		case dsm.Op.Type == WSOpType.rulesReview && dss.id == dsm.SessionID:
+			if err := dss.RulesReview(dsm, ar.Clientset); err != nil {
+				return err
+			}
 		case dsm.Op.Type == WSOpType.list && dss.id == dsm.SessionID:
 			if err := dss.List(dsm, ar.DynamicClient); err != nil {
 				return err

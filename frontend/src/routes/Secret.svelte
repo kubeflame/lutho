@@ -87,7 +87,7 @@
   />
 </HeaderElement>
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar
     slot="resource-toolbar"
     bind:codeMirrorChanged
@@ -132,8 +132,8 @@
 
     <Details title={"Data"}>
       <div
-        class="border-base-300 bg-base-200/10 overflow-hidden
-          break-words rounded-lg border px-1 font-mono text-sm"
+        class="overflow-hidden break-words rounded-lg
+          border border-base-300 bg-base-200/10 px-1 font-mono text-sm"
       >
         {#if secretData?.data}
           {#each Object.entries(secretData.data) as data}

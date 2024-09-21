@@ -53,7 +53,7 @@
 
 <HeaderElement showNamespaceSelect />
 
-<RouterPage bind:error={$sockError} bind:loading={$isLoading}>
+<RouterPage bind:errorMessage={$sockError} bind:loading={$isLoading}>
   <ResourceToolbar slot="resource-toolbar">
     <ResourceToolbarBreadcrumbs slot="breadcrumbs" bind:toolbarContent />
   </ResourceToolbar>

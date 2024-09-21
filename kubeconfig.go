@@ -80,8 +80,8 @@ func authInit(ar *APIResource) (ssar *authv1.SelfSubjectAccessReview, err error)
 
 	ar.Helm = &Helm{ActionConfig: hac, EnvSettings: hes}
 
-	ssarr := &SelfSubjectAccessReviewResource{
-		SSAR: &authv1.SelfSubjectAccessReview{
+	ssa := &SelfSubjectAuth{
+		Access: &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
 					Verb:     "*",
@@ -92,7 +92,7 @@ func authInit(ar *APIResource) (ssar *authv1.SelfSubjectAccessReview, err error)
 	}
 
 	var errReview error
-	ssar, errReview = ssarr.Review(ar.Clientset)
+	ssar, errReview = ssa.AccessReview(ar.Clientset)
 	if errReview != nil {
 		return ssar, errReview
 	}
