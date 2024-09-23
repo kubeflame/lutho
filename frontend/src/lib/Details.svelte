@@ -12,7 +12,7 @@
     <input type="checkbox" class="peer h-8" checked={collapseChecked} />
 
     <div
-      class="collapse-title flex h-8 !items-center rounded-t-lg bg-base-200 pl-3
+      class="collapse-title flex h-8 !items-center rounded-t-lg bg-base-200 !py-1 pl-3
         font-mono text-sm font-light tracking-wide text-base-content/80 after:!right-4 after:!top-1.5"
     >
       <SvgIcon type={"info"} />
