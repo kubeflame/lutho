@@ -26,8 +26,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.AppVersion=$LUTHO_
 
 # =========== FIN ===========
 FROM alpine:3.18
-WORKDIR /app
+WORKDIR /root
 
-COPY --from=backend /app/lutho ./lutho
+COPY --from=backend /app/lutho /usr/bin/lutho
 
-ENTRYPOINT ["/app/lutho"]
+ENTRYPOINT ["/usr/bin/lutho"]

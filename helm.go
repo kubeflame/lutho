@@ -48,7 +48,8 @@ func initHelm(ar *APIResource) (*action.Configuration, *cli.EnvSettings, error) 
 	settings.KubeCaFile = ar.Config.CAFile
 	settings.KubeInsecureSkipTLSVerify = ar.Config.Insecure
 	settings.RegistryConfig = filepath.Join(homeDir, defaultHelmRegistry, "config.json")
-	settings.RepositoryCache = homeDir + defaultHelmRepository
+	settings.RepositoryCache = filepath.Join(homeDir, defaultHelmRepository)
+	settings.RepositoryConfig = filepath.Join(homeDir, defaultHelmRepository, "repositories.yaml")
 
 	return actionConfig, settings, nil
 }
