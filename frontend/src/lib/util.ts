@@ -25,14 +25,14 @@ export const httpStatus: HTTPStatusCode = {
 };
 
 export const apiURL = {
-  auth: "/srv/auth",
-  authState: "/srv/auth/state",
-  data: "/srv/data",
-  dataWS: "/srv/data/ws",
-  logs: "/srv/logs",
-  logsStream: "/srv/logs/stream",
-  shell: "/srv/shell",
-  shellExec: "/srv/shell/exec",
+  auth: "srv/auth",
+  authState: "srv/auth/state",
+  data: "srv/data",
+  dataWS: "srv/data/ws",
+  logs: "srv/logs",
+  logsStream: "srv/logs/stream",
+  shell: "srv/shell",
+  shellExec: "srv/shell/exec",
 } as const;
 
 export const colorScheme = {

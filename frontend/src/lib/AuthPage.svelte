@@ -26,7 +26,7 @@
   };
 
   async function onClickAuthButton() {
-    await fetch(apiURL.auth, {
+    await fetch(`${location.pathname}${apiURL.auth}`, {
       method: "POST",
       body: JSON.stringify(authRequest),
       headers: {

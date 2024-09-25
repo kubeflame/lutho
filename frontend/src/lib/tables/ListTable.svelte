@@ -23,7 +23,7 @@
   <tbody>
     {#if items}
       {#each items as item}
-        {#if item.metadata.deletionGracePeriodSeconds}
+        {#if item.metadata.deletionTimestamp}
           <tr class="bg-error/20 opacity-70">
             <td class="flex items-center gap-x-2">
               <slot name="podPhaseBadge" {item} />

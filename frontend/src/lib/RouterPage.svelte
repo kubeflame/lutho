@@ -17,7 +17,7 @@
   export let loading: boolean;
 
   onMount(async function () {
-    await fetch(apiURL.authState)
+    await fetch(`${location.pathname}${apiURL.authState}`)
       .then((resp) => {
         return resp.json();
       })

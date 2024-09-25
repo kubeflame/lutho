@@ -60,7 +60,7 @@
     if (el && !followLogs) el.innerHTML = "";
 
     await fetch(
-      `${apiURL.logsStream}?namespace=${namespace}&name=${
+      `${location.pathname}${apiURL.logsStream}?namespace=${namespace}&name=${
         name
       }&container=${container}&follow=${followLogs}&tailLines=${
         followLogs ? "1" : "1000"
@@ -76,7 +76,7 @@
         alert = { message: error, type: "error" };
       });
 
-    sock = new WebSocket(`ws://${location.host}${apiURL.logs}`);
+    sock = new WebSocket(`ws://${location.host}${location.pathname}${apiURL.logs}`);
 
     sock.onopen = function () {
       isFetching = false;

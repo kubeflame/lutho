@@ -16,7 +16,7 @@ async function getSessionID(
 ) {
   isLoading.set(true);
 
-  await fetch(apiURL.dataWS)
+  await fetch(`${location.pathname}${apiURL.dataWS}`)
     .then((resp) => {
       return resp.json();
     })
@@ -44,7 +44,7 @@ function sockConnection(
 ): WebSocket {
   getSessionID(isLoading, sockError, sessionId);
 
-  const sock = new WebSocket(`ws://${location.host}${apiURL.data}`);
+  const sock = new WebSocket(`ws://${location.host}${location.pathname}${apiURL.data}`);
 
   sock.onopen = function () {
     sockState.set({ state: sock.readyState, bound: false });
@@ -213,6 +213,7 @@ export default function createSocketStore() {
         );
         s.refresh = false;
       } else if (sock?.readyState === WebSocket.OPEN && s.bound && data) {
+        sockError.set("")
         isLoading.set(true);
         data.forEach((item) => {
           sock.send(

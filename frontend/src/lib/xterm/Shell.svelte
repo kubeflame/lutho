@@ -41,7 +41,7 @@
     isLoading = true;
 
     await fetch(
-      `${apiURL.shellExec}?namespace=${namespace}&name=${name}&container=${ac}`,
+      `${location.pathname}${apiURL.shellExec}?namespace=${namespace}&name=${name}&container=${ac}`,
     )
       .then((resp) => {
         return resp.json();
@@ -54,7 +54,7 @@
         errorMessage = `Cannot get sessionId: ${error}`;
       });
 
-    sock = new WebSocket(`ws://${location.host}${apiURL.shell}`);
+    sock = new WebSocket(`ws://${location.host}${location.pathname}${apiURL.shell}`);
 
     sock.onopen = function () {
       showShellReconnect.set(false);
