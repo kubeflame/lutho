@@ -99,3 +99,13 @@ func authInit(ar *APIResource) (ssar *authv1.SelfSubjectAccessReview, err error)
 
 	return ssar, nil
 }
+
+func authUnset(ar *APIResource) error {
+	ar.Helm = nil
+	ar.DynamicClient = nil
+	ar.Clientset = nil
+	ar.Config = nil
+	ar.AuthState = false
+
+	return nil
+}

@@ -1,16 +1,22 @@
 <script lang="ts">
   import SelfSubjectRulesReview from "./SelfSubjectRulesReview.svelte";
   import socketStore from "./socketStore";
-  import { kubeHost, namespace } from "./stores";
-  import type { Alert, KubeOp } from "./types";
-  import { randomUUID, SelfSubjectRulesReviewV1GVRK } from "./util";
+  import { authState, kubeHost, namespace } from "./stores";
+  import type { Alert, AuthResponse, KubeOp } from "./types";
+  import {
+    apiURL,
+    randomUUID,
+    routeString,
+    SelfSubjectRulesReviewV1GVRK,
+  } from "./util";
   import BottomAlert from "./BottomAlert.svelte";
   import type { V1ResourceRule } from "@kubernetes/client-node";
   import CaptionTag from "./CaptionTag.svelte";
+  import { push } from "svelte-spa-router";
 
   export let dialog: HTMLDialogElement;
   export const onOpen = () => {
-    $dataSend = [sendRulesReview];
+    if ($authState && $kubeHost) $dataSend = [sendRulesReview];
   };
 
   const { sockState, sockError, isLoading, dataSend, dataGet } = socketStore();
@@ -42,6 +48,8 @@
   namespace.subscribe((n) => (rulesNamespace = n));
 
   function get() {
+    if (!$authState && !$kubeHost) return;
+
     resetData();
 
     if ($sockState.state === WebSocket.CLOSED) {
@@ -65,6 +73,30 @@
     $dataGet = "";
     $sockError = "";
   }
+
+  async function logout() {
+    await fetch(`${location.pathname}${apiURL.auth}`, {
+      method: "POST",
+      body: JSON.stringify({ type: "authUnset" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((resp) => {
+        return resp.json();
+      })
+      .then((result: AuthResponse) => {
+        $authState = result.state;
+        $kubeHost = result.kubeHost;
+        alert = { message: result.error, type: "error" };
+        if (!alert.message) {
+          push(routeString.auth);
+        }
+      })
+      .catch((error) => {
+        alert = { message: error, type: "error" };
+      });
+  }
 </script>
 
 <dialog bind:this={dialog} class="modal modal-middle" on:close={resetData}>
@@ -75,7 +107,7 @@
   >
     <CaptionTag tagName={"Cluster connection"} bgClassNames={"mt-2"} />
     <div class="font-mono">
-      {$kubeHost}
+      {$kubeHost || "not connected"}
     </div>
 
     <CaptionTag tagName={"Namespace access rules"} bgClassNames={"mt-4"} />
@@ -93,11 +125,13 @@
           type="text"
           class="input input-xs join-item input-bordered flex grow
             bg-base-100 text-sm focus:border-primary/60 focus:outline-0"
+          disabled={!$authState && !$kubeHost}
         />
       </div>
       <button
         class="btn btn-primary join-item btn-xs rounded-lg"
         on:click={get}
+        disabled={!$authState && !$kubeHost}
       >
         Review
       </button>
@@ -107,14 +141,30 @@
       <SelfSubjectRulesReview rules={rulesData} />
     </div>
 
-    <div class="modal-action flex gap-x-2">
-      <button
-        class="btn btn-xs outline outline-1 outline-base-100 drop-shadow-md
-          hover:bg-error focus:outline-1 focus:outline-error"
-        on:click={() => dialog.close()}
-      >
-        Close
-      </button>
+    <div class="flex space-x-2">
+      <div class="spacer flex grow items-center" />
+
+      {#if $kubeHost && $authState}
+        <div class="modal-action flex gap-x-2">
+          <button
+            class="btn btn-xs outline outline-1 outline-base-100 drop-shadow-md
+              hover:bg-warning focus:outline-1 focus:outline-warning"
+            on:click={logout}
+          >
+            Logout
+          </button>
+        </div>
+      {/if}
+
+      <div class="modal-action flex gap-x-2">
+        <button
+          class="btn btn-xs outline outline-1 outline-base-100 drop-shadow-md
+            hover:bg-error focus:outline-1 focus:outline-error"
+          on:click={() => dialog.close()}
+        >
+          Close
+        </button>
+      </div>
     </div>
 
     <BottomAlert bind:alert />

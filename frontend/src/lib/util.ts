@@ -463,6 +463,7 @@ export const KubeAuthType = {
   kubeconfigPath: "kubeconfigPath",
   kubeconfigRaw: "kubeconfigRaw",
   accessToken: "accessToken",
+  unsetAuth: "unsetAuth",
 } as const;
 
 export const transitionEffects: string =

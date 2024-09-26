@@ -260,10 +260,25 @@ func (ar *APIResource) Auth(c echo.Context) (err error) {
 		})
 	}
 
+	if ar.AuthRequest.Type == "authUnset" {
+		if errUnset := authUnset(ar); errUnset != nil {
+			return c.JSON(http.StatusUnauthorized, AuthResponse{
+				Error: fmt.Sprintf("Auth error: %s", errUnset),
+				State: false,
+			})
+		}
+
+		return c.JSON(http.StatusOK, AuthResponse{
+			State:    ar.AuthState,
+			KubeHost: "",
+		},
+		)
+	}
+
 	ssar, errInit := authInit(ar)
 	if errInit != nil {
 		return c.JSON(http.StatusUnauthorized, AuthResponse{
-			Error:        fmt.Sprintf("Auth error: %s", err),
+			Error:        fmt.Sprintf("Auth error: %s", errInit),
 			State:        false,
 			AccessReview: ssar,
 		})
@@ -272,7 +287,12 @@ func (ar *APIResource) Auth(c echo.Context) (err error) {
 	ar.AuthState = true
 	ar.SSAR = ssar
 
-	return c.JSON(http.StatusOK, AuthResponse{State: ar.AuthState, KubeHost: ar.Config.Host, AccessReview: ar.SSAR})
+	return c.JSON(http.StatusOK, AuthResponse{
+		State:        ar.AuthState,
+		KubeHost:     ar.Config.Host,
+		AccessReview: ar.SSAR,
+	},
+	)
 }
 
 var portFlagValue string

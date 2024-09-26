@@ -25,6 +25,7 @@ export const submitYamlChanges = writable<boolean>(false);
 export const statusCode = writable<number>();
 
 export const kubeHost = writable<string>("");
+export const authState = writable<boolean>(false);
 export const defaultAccessReview = writable<V1SelfSubjectAccessReview>();
 
 export const updatingRepos = writable<{ [key: string]: boolean }>({});

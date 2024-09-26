@@ -7,6 +7,7 @@
     defaultAccessReview,
     sidebarState,
     statusCode,
+    authState,
   } from "./stores";
   import { apiURL, routeString, transitionEffects } from "./util";
   import { onMount } from "svelte";
@@ -23,6 +24,7 @@
       })
       .then((data: AuthResponse) => {
         errorMessage = data.error;
+        $authState = data.state;
         $kubeHost = data.kubeHost;
         $defaultAccessReview = data.accessReview;
         if (!data.state)
@@ -31,6 +33,7 @@
       .catch((err) => {
         $statusCode = 503;
         errorMessage = err;
+        $authState = false;
         $kubeHost = "";
       });
   });
