@@ -2,6 +2,12 @@
 
 [![Go](https://github.com/kubeflame/lutho/actions/workflows/go.yml/badge.svg)](https://github.com/kubeflame/lutho/actions/workflows/go.yml)
 
+# App Preview
+
+https://github.com/user-attachments/assets/0827a961-123f-4087-a05f-b4e148e11a0d
+
+If you want to see more demo videos showing indepth actions, you can find them at https://kubeflame.github.io/#demo
+ 
 # Goal
 
 Create a hybrid application that can help in the management of Kubernetes based resources, including Helm charts.
@@ -13,7 +19,23 @@ But, in order to make it available on multiple platforms a web-based framework w
 
 # Installation and usage
 
-The instalation notes for the pre-built binaries can be accessed at https://kubeflame.github.io/#install-notes
+The instalation notes for the pre-built binaries and Helm chart can be accessed at https://kubeflame.github.io/#install-notes
+
+## Usage Scenarios
+
+### Scenario 1: Using it locally on a desktop or laptop
+
+The application can be started locally from a binary file, and you can connect to a cluster by providing a kubeconfig location or an access token along with the master URL. Then you will need to access the web interface on the configured port -- http://localhost:3001 by default.
+
+`$ lutho start` (and provide the connection details in the interface)
+
+`$ lutho start --port 1337 --kubeconfig /some/location/config`
+
+### Scenario 2: Inside a Kubernetes cluster
+
+The application is configured and deployed using a Helm chart and the interface is accessed using the configured ingress path. (i.e. - http://mycluster.io/lutho/)
+
+In this scenario you can also constrain the access using RBAC and add another layer of security by protecting the ingress using a tool like OAuth2 Proxy.
 
 ## Building it from source
 
